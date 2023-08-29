@@ -1,2 +1,3 @@
 # jutils
-Some useful functions.
+
+Some useful utility functions.
