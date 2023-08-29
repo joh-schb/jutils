@@ -1,1 +1,8 @@
+torch
+numpy
+einops
+pillow
+ipython
+termcolor
 setuptools
+matplotlib
