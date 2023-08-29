@@ -4,7 +4,7 @@ Some useful utility functions.
 
 Simply install it with
 
-```bash
+```
 pip3 install git+https://github.com/joh-fischer/jutils.git#egg=jutils
 ```
 
