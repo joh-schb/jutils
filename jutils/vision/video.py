@@ -1,3 +1,5 @@
+import einops
+import torch
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -51,6 +53,31 @@ def animate_video(frames, fps=5, return_html=False):
     return animate(frames, fps)
 
 
+def colorize_border(x, cond_frames: int, channel=0, value=255, pad=1):
+    """
+    Args:
+        x: Input of shape (b, c, f, h, w) in uint8 and range [0, 255].
+        cond_frames: Number of conditioning frames. Pads first n frames.
+        channel: Color channel (0=red, 1=green, 2=blue).
+        value: Value (should be either 1 or 255).
+        pad: Padding size (default=1).
+    Return:
+        x: Input with colored border and shape (b, c, f, h + 2*pad, w + 2*pad).
+    """
+    if pad > 0:
+        is_torch = isinstance(x, torch.Tensor)
+        x = torch.tensor(x) if not is_torch else x
+        x = torch.nn.functional.pad(x, [pad, ] * 4)
+        x = x.numpy() if not is_torch else x
+    else:
+        pad = 1
+    x[:, channel, :cond_frames, :pad, :] = value      # top
+    x[:, channel, :cond_frames, -pad:, :] = value     # bottom
+    x[:, channel, :cond_frames, :, :pad] = value      # left
+    x[:, channel, :cond_frames, :, -pad:] = value     # right
+    return x
+
+
 if __name__ == "__main__":
     vid = np.random.randint(0, 255, (10, 256, 256, 3))
 
@@ -59,3 +86,9 @@ if __name__ == "__main__":
 
     # save video as gif
     save_as_gif(vid, 'test.gif')
+
+    # colorize_border(x, cond_frames, channel=0, value=255, pad=1)
+    vid = np.random.randint(0, 255, (1, 3, 10, 256, 256))
+    vid = colorize_border(vid, 5, channel=0, value=255, pad=20)[0]
+    vid = einops.rearrange(vid, 'c f h w -> f h w c')
+    save_as_gif(vid, 'colorized-border.gif')

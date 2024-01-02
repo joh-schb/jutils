@@ -6,3 +6,4 @@ from jutils.vision.image import zero_pad
 
 # video
 from jutils.vision.video import save_as_gif, animate_video
+from jutils.vision.video import colorize_border
