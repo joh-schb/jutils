@@ -1,7 +1,56 @@
 import os
+import torch
 import einops
 import numpy as np
 from PIL import Image
+
+
+def norm(im):
+    return im / 127.5 - 1.
+
+
+def denorm(im):
+    return (im + 1.) * 127.5
+
+
+def im2tensor(im, normalize_zero_one=False):
+    """
+    Args:
+        im: PIL image or numpy array of shape (h, w, c) in range [0, 255]
+        normalize_zero_one: If True, normalizes image to range [0, 1] instead of [-1, 1]
+    Returns:
+        Tensor of shape (3, h, w) normalized to either [-1, 1] or [0, 1]
+    """
+    if isinstance(im, Image.Image):
+        im = np.array(im)
+    assert len(im.shape) == 3, f"Image must be of shape (h, w, c). Got {im.shape}."
+    if normalize_zero_one:
+        im = im / 255.
+    else:
+        im = im / 127.5 - 1.
+    im = einops.rearrange(im, 'h w c -> c h w')
+    return torch.tensor(im)
+
+
+def tensor2im(tensor, denormalize_zero_one=False):
+    """
+    Args:
+        tensor: Tensor of shape (3, h, w)
+        denormalize_zero_one: If True, denormalizes image from range [0, 1] otherwise
+            from [-1, 1] to [0, 255]
+    Returns:
+        Numpy array of shape (h, w, 3) in range [0, 255]
+    """
+    assert len(tensor.shape) == 3, f"Tensor must be of shape (c, h, w). Got {tensor.shape}."
+    if isinstance(tensor, torch.Tensor):
+        tensor = tensor.detach().cpu().numpy()
+    im = einops.rearrange(tensor, 'c h w -> h w c')
+    if denormalize_zero_one:
+        im = im * 255.
+    else:
+        im = (im + 1.) * 127.5
+    im = np.clip(im, 0, 255).astype(np.uint8)
+    return im
 
 
 def alpha_compose(bg_im, fg_im, alpha=0.5):
@@ -50,6 +99,25 @@ def get_original_reconstruction_image(x, x_hat, channels_first=False):
     return ims
 
 
+def zero_pad(x, pad=2):
+    """
+    Pads image with zeros. If pad is an integer, pads with pad pixels on all sides.
+
+    Args:
+        x: Image of shape (..., h, w)
+        pad: Number of pixels to pad on all sides or tuple of 4 ints (left, right, top, bottom)
+    """
+    is_torch = isinstance(x, torch.Tensor)
+    x = torch.tensor(x) if not is_torch else x
+    if isinstance(pad, tuple) or isinstance(pad, list):
+        padding = pad
+    else:
+        padding = [pad, ] * 4
+    x = torch.nn.functional.pad(x, padding)
+    x = x.numpy() if not is_torch else x
+    return x
+
+
 if __name__ == "__main__":
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     im_fp = os.path.join(cur_dir.split('jutils/vision')[0], 'assets', 'image.jpg')
@@ -67,3 +135,21 @@ if __name__ == "__main__":
     im_orig_rec = get_original_reconstruction_image(im_orig, im_rec)
     print("Shape of original vs reconstructed image:", im_orig_rec.shape)
     Image.fromarray(im_orig_rec).show()
+
+    # img2tensor(img, normalize_zero_one=False)
+    img = Image.open(im_fp)
+    print("img2tensor(img).shape:", im2tensor(img).shape,
+          f"min: {im2tensor(img).min()}, max: {im2tensor(img).max()}")
+
+    # tensor2img(tensor, denormalize_zero_one=False)
+    arr = im2tensor(img)
+    print("tensor2img(tensor).shape:", tensor2im(arr).shape,
+          f"min: {tensor2im(arr).min()}, max: {tensor2im(arr).max()}")
+
+    # zero_pad(x, pad_size: int = 2)
+    img = Image.open(im_fp)
+    img = im2tensor(img, normalize_zero_one=True)
+    print("zero_pad(x).shape:", zero_pad(img, (50, 100, 150, 200)).shape)
+    Image.fromarray(
+        tensor2im(zero_pad(img, (50, 100, 0, 200)), denormalize_zero_one=True)
+    ).show()
