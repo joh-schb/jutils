@@ -54,6 +54,12 @@ def test_helpers():
     cfg = dict(target="jutils.helpers.Namespace", params=dict(a=1, b=2))
     print("instantiate_from_config(cfg):", instantiate_from_config(cfg))
 
+    # suppress_stdout()
+    from jutils import suppress_stdout
+    with suppress_stdout():
+        print("This will not be printed!")
+    print("This will be printed!")
+
 
 def test_log():
     from jutils import get_logger
