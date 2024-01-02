@@ -1,5 +1,7 @@
+import os
+import sys
 import math
-import importlib
+from contextlib import contextmanager
 
 
 def exists(x):
@@ -42,21 +44,15 @@ class Namespace(dict):
         self[attr] = value
 
 
-# instantiate from config
-
-
-def get_obj_from_str(string, reload=False):
-    module, cls = string.rsplit(".", 1)
-    if reload:
-        module_imp = importlib.import_module(module)
-        importlib.reload(module_imp)
-    return getattr(importlib.import_module(module, package=None), cls)
-
-
-def instantiate_from_config(config):
-    if "target" not in config:
-        raise KeyError("Expected key `target` to instantiate.")
-    return get_obj_from_str(config["target"])(**config.get("params", dict()))
+@contextmanager
+def suppress_stdout():
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
 
 
 if __name__ == "__main__":
@@ -65,9 +61,10 @@ if __name__ == "__main__":
 
     # Namespace()
     self = Namespace(a=1)
-    self.b = 3
+    self.b = "variable b"
     print("Namespace:", self.a, self.b)
 
-    # instantiate_from_config(config)
-    cfg = dict(target="jutils.helpers.Namespace", params=dict(a=1, b=2))
-    print("instantiate_from_config(cfg):", instantiate_from_config(cfg))
+    # suppress
+    with suppress_stdout():
+        print("This will not be printed.")
+    print("This will be printed.")
