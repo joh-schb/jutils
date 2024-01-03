@@ -118,6 +118,14 @@ def zero_pad(x, pad=2):
     return x
 
 
+def hwc2chw(im):
+    return einops.rearrange(im, '... h w c -> ... c h w')
+
+
+def chw2hwc(im):
+    return einops.rearrange(im, '... c h w -> ... h w c')
+
+
 if __name__ == "__main__":
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     im_fp = os.path.join(cur_dir.split('jutils/vision')[0], 'assets', 'image.jpg')
@@ -153,3 +161,11 @@ if __name__ == "__main__":
     Image.fromarray(
         tensor2im(zero_pad(img, (50, 100, 0, 200)), denormalize_zero_one=True)
     ).show()
+
+    # hwc2chw(im)
+    img = Image.open(im_fp)
+    img = np.array(img)
+    chw = hwc2chw(img)
+    print("hwc2chw(im).shape:", hwc2chw(img).shape)
+    print("chw2hwc(chw).shape:", chw2hwc(chw).shape)
+    print("chw2hwc(chw[None].shape)", chw2hwc(chw[None]).shape)
