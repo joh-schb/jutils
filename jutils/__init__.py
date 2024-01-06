@@ -13,7 +13,9 @@ from jutils.helpers import Namespace
 from jutils.helpers import suppress_stdout
 
 # instantiate
-from jutils.instantiate import get_obj_from_str, instantiate_from_config
+from jutils.instantiate import get_obj_from_str
+from jutils.instantiate import instantiate_from_config
+from jutils.instantiate import load_partial_from_config
 
 # logging
 from jutils.log import get_logger
