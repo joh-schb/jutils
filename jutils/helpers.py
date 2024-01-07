@@ -55,6 +55,16 @@ def suppress_stdout():
             sys.stdout = old_stdout
 
 
+def pad_v_like_x(v_, x_):
+    """
+    Function to reshape the vector by the number of dimensions
+    of x. E.g. x (bs, c, h, w), v (bs) -> v (bs, 1, 1, 1).
+    """
+    if isinstance(v_, float):
+        return v_
+    return v_.reshape(-1, *([1] * (x_.ndim - 1)))
+
+
 if __name__ == "__main__":
     # convert_size(size_bytes)
     print("convert_size(1_000_000_000):", convert_size(1_000_000_000))
@@ -68,3 +78,9 @@ if __name__ == "__main__":
     with suppress_stdout():
         print("This will not be printed.")
     print("This will be printed.")
+
+    # pad_vector_like_x(v_, x_)
+    import torch
+    print("pad_vector_like_x(v_, x_):", pad_v_like_x(torch.randn(10), torch.randn(10, 3, 224, 224)).shape)
+    import numpy as np
+    print("pad_vector_like_x(v_, x_):", pad_v_like_x(np.random.randn(10), np.random.randn(10, 3, 224, 224)).shape)
