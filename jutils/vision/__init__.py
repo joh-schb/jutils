@@ -4,6 +4,7 @@ from jutils.vision.image import norm, denorm
 from jutils.vision.image import im2tensor, tensor2im
 from jutils.vision.image import zero_pad
 from jutils.vision.image import chw2hwc, hwc2chw
+from jutils.vision.image import per_sample_min_max_normalization
 
 # video
 from jutils.vision.video import save_as_gif, animate_video

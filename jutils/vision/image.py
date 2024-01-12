@@ -126,6 +126,17 @@ def chw2hwc(im):
     return einops.rearrange(im, '... c h w -> ... h w c')
 
 
+def per_sample_min_max_normalization(x):
+    """ Normalize each sample in a batch independently
+    with min-max normalization to [0, 1] """
+    bs, *shape = x.shape
+    x_ = einops.rearrange(x, "b ... -> b (...)")
+    min_val = einops.reduce(x_, "b ... -> b", "min")[..., None]
+    max_val = einops.reduce(x_, "b ... -> b", "max")[..., None]
+    x_ = (x_ - min_val) / (max_val - min_val)
+    return x_.reshape(bs, *shape)
+
+
 if __name__ == "__main__":
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     im_fp = os.path.join(cur_dir.split('jutils/vision')[0], 'assets', 'image.jpg')
@@ -169,3 +180,8 @@ if __name__ == "__main__":
     print("hwc2chw(im).shape:", hwc2chw(img).shape)
     print("chw2hwc(chw).shape:", chw2hwc(chw).shape)
     print("chw2hwc(chw[None].shape)", chw2hwc(chw[None]).shape)
+
+    # per_sample_min_max_normalization(x)
+    x = torch.arange(2 * 16).reshape(2, 1, 4, 4)
+    print("per_sample_min_max_normalization(x):\n", per_sample_min_max_normalization(x))
+    print("x:", x)

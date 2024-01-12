@@ -5,6 +5,7 @@ from jutils.vision import norm, denorm
 from jutils.vision import im2tensor, tensor2im
 from jutils.vision import zero_pad
 from jutils.vision import chw2hwc, hwc2chw
+from jutils.vision import per_sample_min_max_normalization
 
 # helpers
 from jutils.helpers import exists, is_odd, default
