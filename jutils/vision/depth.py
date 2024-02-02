@@ -44,9 +44,7 @@ def colorize_depth_map(
         inverse=False
 ):
     """
-    Colorize a depth map using a matplotlib colormap. It actually
-    converts the depths to the inverse, so that closer objects
-    are brighter.
+    Colorize a depth map using a matplotlib colormap.
 
     Args:
         depth: Depth tensor of shape (b, 1, c, w) or (b, h, w) with
