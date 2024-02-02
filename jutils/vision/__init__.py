@@ -9,3 +9,6 @@ from jutils.vision.image import per_sample_min_max_normalization
 # video
 from jutils.vision.video import save_as_gif, animate_video
 from jutils.vision.video import colorize_border
+
+# depth
+from jutils.vision.depth import colorize_depth_map
