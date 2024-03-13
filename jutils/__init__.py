@@ -7,6 +7,7 @@ from jutils.vision import zero_pad
 from jutils.vision import chw2hwc, hwc2chw
 from jutils.vision import per_sample_min_max_normalization
 from jutils.vision import colorize_depth_map
+from jutils.vision import resize_ims
 
 # helpers
 from jutils.helpers import exists, is_odd, default

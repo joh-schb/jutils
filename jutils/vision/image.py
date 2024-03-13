@@ -3,6 +3,8 @@ import torch
 import einops
 import numpy as np
 from PIL import Image
+import torch.nn as nn
+from torch import Tensor
 
 
 def norm(im):
@@ -137,6 +139,10 @@ def per_sample_min_max_normalization(x):
     return x_.reshape(bs, *shape)
 
 
+def resize_ims(x: Tensor, size: int, mode: str = "bilinear", **kwargs):
+    return nn.functional.interpolate(x, size=size, mode=mode, **kwargs)
+
+
 if __name__ == "__main__":
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     im_fp = os.path.join(cur_dir.split('jutils/vision')[0], 'assets', 'image.jpg')
@@ -185,3 +191,8 @@ if __name__ == "__main__":
     x = torch.arange(2 * 16).reshape(2, 1, 4, 4)
     print("per_sample_min_max_normalization(x):\n", per_sample_min_max_normalization(x))
     print("x:", x)
+
+    # resize_ims(x: Tensor, size: int, mode: str = "bilinear", **kwargs)
+    x = torch.arange(2 * 16).reshape(2, 1, 4, 4).float()
+    print("resize_ims(x, size=8):\n", resize_ims(x, size=8))
+    print("resize_ims(x, size=8, mode='nearest'):\n", resize_ims(x, size=8, mode='nearest'))
