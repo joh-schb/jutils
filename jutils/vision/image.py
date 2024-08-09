@@ -143,6 +143,29 @@ def resize_ims(x: Tensor, size: int, mode: str = "bilinear", **kwargs):
     return nn.functional.interpolate(x, size=size, mode=mode, **kwargs)
 
 
+def center_crop_np(im, new_height, new_width):
+    assert (
+        len(im.shape) == 3 or len(im.shape) == 2
+    ), f"Image must be of shape (h, w, c) or (h, w). Got {im.shape}."
+    height, width = im.shape[:2]
+    left = (width - new_width)//2
+    top = (height - new_height)//2
+    right = (width + new_width)//2
+    bottom = (height + new_height)//2
+    im = im[top:bottom, left:right]
+    return im
+
+
+def center_crop_pil(im, new_height, new_width):
+    width, height = im.size
+    left = (width - new_width)//2
+    top = (height - new_height)//2
+    right = (width + new_width)//2
+    bottom = (height + new_height)//2
+    im = im.crop((left, top, right, bottom))
+    return im
+
+
 if __name__ == "__main__":
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     im_fp = os.path.join(cur_dir.split('jutils/vision')[0], 'assets', 'image.jpg')
@@ -196,3 +219,13 @@ if __name__ == "__main__":
     x = torch.arange(2 * 16).reshape(2, 1, 4, 4).float()
     print("resize_ims(x, size=8):\n", resize_ims(x, size=8))
     print("resize_ims(x, size=8, mode='nearest'):\n", resize_ims(x, size=8, mode='nearest'))
+
+    # center_crop_np(im, new_height, new_width)
+    img = Image.open(im_fp)
+    img_arr = np.array(img)
+    crop_pil = center_crop_pil(img, 128, 256)
+    crop_np = center_crop_np(img_arr, 128, 256)
+    both = np.concatenate((np.array(crop_pil), crop_np), axis=1)
+    Image.fromarray(both).show()
+    print("center_crop_np(img, 128, 256).shape:", crop_np.shape)
+    print("center_crop_pil(img, 128, 256).size:", crop_pil.size)
