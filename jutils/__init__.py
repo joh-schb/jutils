@@ -28,4 +28,4 @@ from jutils.log import get_logger
 from jutils.timing import timer, timing, Timer
 
 # torch-related functions
-from jutils.torchy import get_tensor_size, count_parameters
+from jutils.torchy import get_tensor_size, count_parameters, freeze

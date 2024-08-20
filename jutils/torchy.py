@@ -19,6 +19,11 @@ def count_parameters(model, return_int: bool = False):
     return f'{n_params:,}'
 
 
+def freeze(model: torch.nn.Module):
+    for param in model.parameters():
+        param.requires_grad = False
+
+
 if __name__ == "__main__":
     # get_tensor_size(tensor)
     x = torch.randn((3, 224, 224))
