@@ -36,3 +36,4 @@ from jutils.torchy import count_parameters
 from jutils.models import Attention
 from jutils.models import QKVAttention
 from jutils.models import AutoencoderKL
+from jutils.models import LATENT_SCALE

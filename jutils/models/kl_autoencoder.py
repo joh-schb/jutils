@@ -18,6 +18,9 @@ try:
 except:
     NATTEN_IS_AVAILBLE = False
 
+# scale factor for normalising the latent space (default value in SD)
+LATENT_SCALE = 0.18215
+
 
 def exists(val):
     return val is not None
@@ -484,24 +487,42 @@ class AutoencoderKL(nn.Module):
             import warnings
             warnings.warn(f'[AutoencoderKL] No checkpoint provided. Random initialization.')
 
-    def encode(self, x):
+    def encode(self, x, normalize=False):
+        """
+        Args:
+            x: input tensor (B, C, H, W) in range [-1, 1]
+            normalize: if True, normalizes the latent code with SDs
+                LATENT_SCALE before returning z with (B, C, H, W).
+                Otherwise, returns the DiagonalGaussianDistribution
+                object (default).
+        """
         h = self.encoder(x)
         moments = self.quant_conv(h)
         posterior = DiagonalGaussianDistribution(moments)
+        if normalize:
+            return posterior.mode() * LATENT_SCALE
         return posterior
 
-    def decode(self, z):
+    def decode(self, z, denorm=False):
+        """
+        Args:
+            z: latent code tensor (B, C, H, W)
+            denorm: if True, denormalizes the latent code
+                with SDs LATENT_SCALE before decoding.
+        """
+        if denorm:
+            z = z / LATENT_SCALE
         z = self.post_quant_conv(z)
         dec = self.decoder(z)
         return dec
 
     def forward(self, input, sample_posterior=True):
-        posterior = self.encode(input)
+        posterior = self.encode(input, normalize=False)
         if sample_posterior:
             z = posterior.sample()
         else:
             z = posterior.mode()
-        dec = self.decode(z)
+        dec = self.decode(z, denorm=False)
         return dec, posterior
 
 
