@@ -8,7 +8,7 @@ def timer(start, end):
     return "{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds)
 
 
-def timing(str_format: str = '%H:%M:%S.%f'):
+def get_time(str_format: str = '%H:%M:%S.%f'):
     return datetime.datetime.now().strftime(str_format)
 
 
@@ -34,4 +34,4 @@ if __name__ == "__main__":
     print("Timer():", t.time)
 
     # timing
-    print("timing():", timing())
+    print("get_time():", get_time())
