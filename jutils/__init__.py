@@ -25,7 +25,14 @@ from jutils.instantiate import load_partial_from_config
 from jutils.log import get_logger
 
 # time functions
-from jutils.timing import timer, timing, Timer
+from jutils.timing import timer, get_time, Timer
 
 # torch-related functions
-from jutils.torchy import get_tensor_size, count_parameters, freeze
+from jutils.torchy import freeze
+from jutils.torchy import get_tensor_size
+from jutils.torchy import count_parameters
+
+# models
+from jutils.models import Attention
+from jutils.models import QKVAttention
+from jutils.models import AutoencoderKL

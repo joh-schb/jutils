@@ -70,7 +70,7 @@ def test_log():
 
 def test_timing():
     import time
-    from jutils import timer, Timer, timing
+    from jutils import timer, Timer, get_time
 
     # timer(start, end)
     t0 = time.time()
@@ -83,7 +83,7 @@ def test_timing():
     print("Timer():", t.time)
 
     # timing
-    print("timing():", timing())
+    print("get_time():", get_time())
 
 
 def test_torchy():
@@ -99,10 +99,27 @@ def test_torchy():
     print("count_parameters(model):", count_parameters(my_model))
 
 
+def test_all_files():
+    import glob
+    import subprocess
+    root_dir = os.getcwd()
+
+    # find all python files in jutils folder
+    python_files = glob.glob(os.path.join(root_dir, 'jutils', '**', '*.py'), recursive=True)
+
+    # execute each python file
+    for pf in python_files:
+        if '__init__.py' in pf:
+            continue
+        print(f"[****] Executing: {pf}")
+        subprocess.run(['python', pf])
+
+
 if __name__ == "__main__":
-    test_image(show_output=False)
-    test_video()
-    test_helpers()
-    test_log()
-    test_timing()
-    test_torchy()
+    # test_image(show_output=False)
+    # test_video()
+    # test_helpers()
+    # test_log()
+    # test_timing()
+    # test_torchy()
+    test_all_files()
