@@ -13,7 +13,7 @@ except AttributeError:
     EFFICIENT_ATTN_AVAILABLE = False
 
 try:
-    import natten
+    import natten # type: ignore
     NATTEN_IS_AVAILBLE = True
 except:
     NATTEN_IS_AVAILBLE = False
