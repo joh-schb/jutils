@@ -1,5 +1,4 @@
 import torch
-
 from jutils.helpers import convert_size
 
 
@@ -32,3 +31,9 @@ if __name__ == "__main__":
     # count_parameters(model)
     my_model = torch.nn.Linear(10, 10)
     print("count_parameters(model):", count_parameters(my_model))
+
+    # freeze(model)
+    my_model = torch.nn.Linear(10, 10)
+    print("Before freezing: ", my_model.weight.requires_grad)
+    freeze(my_model)
+    print("After freezing: ", my_model.weight.requires_grad)
