@@ -31,18 +31,20 @@ def im2tensor(im, normalize_zero_one=False):
     else:
         im = im / 127.5 - 1.
     im = einops.rearrange(im, 'h w c -> c h w')
-    return torch.tensor(im)
+    return torch.tensor(im).float()
 
 
 def tensor2im(tensor, denormalize_zero_one=False):
     """
     Args:
-        tensor: Tensor of shape (3, h, w)
+        tensor: Tensor of shape (3, h, w) or (1, 3, h, w) in range [-1, 1] or [0, 1]
         denormalize_zero_one: If True, denormalizes image from range [0, 1] otherwise
             from [-1, 1] to [0, 255]
     Returns:
         Numpy array of shape (h, w, 3) in range [0, 255]
     """
+    if len(tensor.shape) == 4 and tensor.shape[0] == 1:
+        tensor = tensor[0]
     assert len(tensor.shape) == 3, f"Tensor must be of shape (c, h, w). Got {tensor.shape}."
     if isinstance(tensor, torch.Tensor):
         tensor = tensor.detach().cpu().numpy()
