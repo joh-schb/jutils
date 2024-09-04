@@ -39,7 +39,4 @@ from jutils.torchy import get_tensor_size
 from jutils.torchy import count_parameters
 
 # models
-from jutils.models import Attention
-from jutils.models import QKVAttention
-from jutils.models import AutoencoderKL
-from jutils.models import LATENT_SCALE
+# ... can only be imported via jutils.models.<model_name>
