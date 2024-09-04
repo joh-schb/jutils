@@ -37,18 +37,18 @@ def im2tensor(im, normalize_zero_one=False):
 def tensor2im(tensor, denormalize_zero_one=False):
     """
     Args:
-        tensor: Tensor of shape (3, h, w) or (1, 3, h, w) in range [-1, 1] or [0, 1]
+        tensor: Tensor of shape (..., 3, h, w) in range [-1, 1] or [0, 1]
         denormalize_zero_one: If True, denormalizes image from range [0, 1] otherwise
             from [-1, 1] to [0, 255]
     Returns:
-        Numpy array of shape (h, w, 3) in range [0, 255]
+        Numpy array of shape (h, w, 3) in range [0, 255] if tensor shape is (3, h, w)
+            or (1, 3, h, w). Otherwise, returns array of shape (..., h, w, 3).
     """
     if len(tensor.shape) == 4 and tensor.shape[0] == 1:
         tensor = tensor[0]
-    assert len(tensor.shape) == 3, f"Tensor must be of shape (c, h, w). Got {tensor.shape}."
     if isinstance(tensor, torch.Tensor):
         tensor = tensor.detach().cpu().numpy()
-    im = einops.rearrange(tensor, 'c h w -> h w c')
+    im = einops.rearrange(tensor, '... c h w -> ... h w c')
     if denormalize_zero_one:
         im = im * 255.
     else:
@@ -168,6 +168,29 @@ def center_crop_pil(im, new_height, new_width):
     return im
 
 
+def ims_to_grid(ims, stack="row", split=4):
+    """
+    Args:
+        ims: Tensor of shape (b, c, h, w)
+        stack: "row" or "col"
+        split: If 'row' stack by rows, if 'col' stack by columns.
+    Returns:
+        Tensor of shape (h, w, c)
+    """
+    if stack not in ["row", "col"]:
+        raise ValueError(f"Unknown stack type {stack}")
+    if split is not None and ims.shape[0] % split == 0:
+        splitter = dict(b1=split) if stack == "row" else dict(b2=split)
+        ims = einops.rearrange(ims, "(b1 b2) c h w -> (b1 h) (b2 w) c", **splitter)
+    else:
+        to = "(b h) w c" if stack == "row" else "h (b w) c"
+        ims = einops.rearrange(ims, "b c h w -> " + to)
+    return ims
+
+
+""" Unit Testing """
+
+
 if __name__ == "__main__":
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     im_fp = os.path.join(cur_dir.split('jutils/vision')[0], 'assets', 'image.jpg')
@@ -231,3 +254,11 @@ if __name__ == "__main__":
     Image.fromarray(both).show()
     print("center_crop_np(img, 128, 256).shape:", crop_np.shape)
     print("center_crop_pil(img, 128, 256).size:", crop_pil.size)
+
+    # ims_to_grid(ims, stack="row", split=4)
+    ims = im2tensor(Image.open(im_fp).resize((128, 128))).unsqueeze(0).repeat(16, 1, 1, 1)
+    grid1 = ims_to_grid(ims, stack="row", split=4)
+    grid2 = ims_to_grid(ims, stack="col", split=2)
+    print("ims_to_grid(ims, stack='row', split=4).shape:", grid1.shape)
+    print("ims_to_grid(ims, stack='col', split=2).shape:", grid2.shape)
+    Image.fromarray(denorm(grid2).to(torch.uint8).numpy()).show()

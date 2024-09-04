@@ -7,6 +7,7 @@ from jutils.vision.image import chw2hwc, hwc2chw
 from jutils.vision.image import per_sample_min_max_normalization
 from jutils.vision.image import resize_ims
 from jutils.vision.image import center_crop_np, center_crop_pil
+from jutils.vision.image import ims_to_grid
 
 # video
 from jutils.vision.video import save_as_gif, animate_video
