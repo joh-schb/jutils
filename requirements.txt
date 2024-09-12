@@ -6,3 +6,4 @@ ipython
 termcolor
 setuptools
 matplotlib
+torchdiffeq
