@@ -168,7 +168,7 @@ def center_crop_pil(im, new_height, new_width):
     return im
 
 
-def ims_to_grid(ims, stack="row", split=4):
+def ims_to_grid(ims, stack="row", split=4, channel_last=False):
     """
     Args:
         ims: Tensor of shape (b, c, h, w)
@@ -179,12 +179,13 @@ def ims_to_grid(ims, stack="row", split=4):
     """
     if stack not in ["row", "col"]:
         raise ValueError(f"Unknown stack type {stack}")
+    from_ = 'h w c' if channel_last else 'c h w'
     if split is not None and ims.shape[0] % split == 0:
         splitter = dict(b1=split) if stack == "row" else dict(b2=split)
-        ims = einops.rearrange(ims, "(b1 b2) c h w -> (b1 h) (b2 w) c", **splitter)
+        ims = einops.rearrange(ims, f"(b1 b2) {from_} -> (b1 h) (b2 w) c", **splitter)
     else:
         to = "(b h) w c" if stack == "row" else "h (b w) c"
-        ims = einops.rearrange(ims, "b c h w -> " + to)
+        ims = einops.rearrange(ims, f"b {from_} -> " + to)
     return ims
 
 
@@ -258,7 +259,7 @@ if __name__ == "__main__":
     # ims_to_grid(ims, stack="row", split=4)
     ims = im2tensor(Image.open(im_fp).resize((128, 128))).unsqueeze(0).repeat(16, 1, 1, 1)
     grid1 = ims_to_grid(ims, stack="row", split=4)
-    grid2 = ims_to_grid(ims, stack="col", split=2)
+    grid2 = ims_to_grid(ims.permute(0, 2, 3, 1), stack="col", split=2, channel_last=True)
     print("ims_to_grid(ims, stack='row', split=4).shape:", grid1.shape)
-    print("ims_to_grid(ims, stack='col', split=2).shape:", grid2.shape)
-    Image.fromarray(denorm(grid2).to(torch.uint8).numpy()).show()
+    print("ims_to_grid(ims, stack='col', split=2, channel_last=True).shape:", grid2.shape)
+    Image.fromarray(denorm(grid1).to(torch.uint8).numpy()).show()

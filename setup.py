@@ -8,7 +8,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="jutils",
-    version="0.9.1.2",
+    version="0.9.1.3",
     packages=find_packages(),
     url="https://github.com/joh-fischer/jutils",
     license="MIT License",
