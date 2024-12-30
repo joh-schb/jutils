@@ -19,6 +19,10 @@ def default(val, d):
     return d() if callable(d) else d
 
 
+def bool2str(val):
+    return "True" if val else "False"
+
+
 def convert_size(size_bytes):
     if size_bytes == 0:
         return "0B"
