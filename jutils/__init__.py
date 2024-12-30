@@ -39,4 +39,4 @@ from jutils.torchy import get_tensor_size
 from jutils.torchy import count_parameters
 
 # models
-# ... can only be imported via jutils.models.<model_name>
+# ... can only be imported via jutils.nn.<module>
