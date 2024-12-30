@@ -136,3 +136,24 @@ In the main function we only need to start the whole procedure.
 if __name__ == "__main__":
     dist.launch(main_worker)
 ```
+
+
+## Toy 2D Datasets
+
+You can sample from a 2D dataset as follows:
+
+```py
+from jutils.dataset import Dataset2D
+
+dataset = Dataset2D('moons', noise=0.05)
+
+# without labels
+samples = dataset.sample(100, labels=False)       # (100, 2) torch tensor
+
+# with labels
+samples, labels = dataset.sample(100, labels=True)
+```
+
+There is also a `shuffle` and a `normalize` flag, where the first shuffles the data and the latter normalizes it to have zero mean and unit standard deviation.
+
+![2D Datasets](assets/datasets_2d.jpg)

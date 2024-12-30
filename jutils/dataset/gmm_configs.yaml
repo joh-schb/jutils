@@ -1,0 +1,28 @@
+# example config for a mixture of Gaussian mixtures dataset
+test_gmm:
+  class_probs: [1, 1, 1]
+  classes:
+    - mode_probs: [1]
+      params:
+        - loc: [0, -4]
+          cov: [[0.2, 0.0],
+                [0.0, 0.2]]
+    - mode_probs: [1, 1]
+      params:
+        - loc: [-3, 2]
+          cov: [[0.2, 0.0],
+                [0.0, 0.2]]
+        - loc: [3, 2]
+          cov: [[0.2, 0.0],
+                [0.0, 0.2]]
+    - mode_probs: [1, 1, 1]
+      params:
+        - loc: [0, 4]
+          cov: [[0.2, 0.0],
+                [0.0, 0.2]]
+        - loc: [-4, -2]
+          cov: [[0.2, 0.0],
+                [0.0, 0.2]]
+        - loc: [4, -2]
+          cov: [[0.2, 0.0],
+                [0.0, 0.2]]
