@@ -140,11 +140,13 @@ if __name__ == "__main__":
 
 ## Toy 2D Datasets
 
-You can sample from a 2D dataset as follows:
+In `jutils/dataset/toy_2d.py` you can find a bunch of 2D toy datasets. You can define a dataset and sample from it as follows:
 
 ```py
+from jutils.dataset import DATASETS
 from jutils.dataset import Dataset2D
 
+print(DATASETS.keys())      # print all available datasets
 dataset = Dataset2D('moons', noise=0.05)
 
 # without labels
