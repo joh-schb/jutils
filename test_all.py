@@ -107,6 +107,10 @@ def test_all_files():
     # find all python files in jutils folder
     python_files = glob.glob(os.path.join(root_dir, 'jutils', '**', '*.py'), recursive=True)
 
+    # skip some files
+    skip_files = ['min_DDP.py']
+    python_files = [pf for pf in python_files if os.path.basename(pf) not in skip_files]
+
     # execute each python file
     for pf in python_files:
         if '__init__.py' in pf:

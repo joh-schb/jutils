@@ -41,3 +41,6 @@ from jutils.torchy import get_grad_norm
 
 # models
 # ... can only be imported via jutils.nn.<module>
+
+# pytorch distributed training
+# ... can only be imported via jutils.distributed
