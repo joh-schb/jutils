@@ -5,7 +5,7 @@ Some useful utility functions.
 Simply install it with
 
 ```
-pip install git+https://github.com/joh-fischer/jutils.git#egg=jutils
+pip install git+https://github.com/joh-schb/jutils.git#egg=jutils
 ```
 
 ## Usage

@@ -8,11 +8,11 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="jutils",
-    version="0.9.1.4",
+    version="0.9.2.0",
     packages=find_packages(),
-    url="https://github.com/joh-fischer/jutils",
+    url="https://github.com/joh-schb/jutils",
     license="MIT License",
-    author="Johannes S. Fischer",
+    author="Johannes Schusterbauer",
     description="Collection of useful utility functions.",
     install_requires=install_requires,
     long_description=long_description,
