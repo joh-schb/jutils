@@ -466,7 +466,8 @@ class AutoencoderKL(nn.Module):
             ckpt_path: str = None,
             ddconfig=DEFAULT_DDCONFIG,
             embed_dim: int = 4,
-            **kwargs
+            scale: float = 0.18215,     # SD: 0.18215
+            shift: float = 0.0
         ):
         super().__init__()
         self.encoder = Encoder(**ddconfig)
@@ -475,6 +476,9 @@ class AutoencoderKL(nn.Module):
         self.quant_conv = nn.Conv2d(2*ddconfig["z_channels"], 2*embed_dim, 1)
         self.post_quant_conv = nn.Conv2d(embed_dim, ddconfig["z_channels"], 1)
         self.embed_dim = embed_dim
+
+        self.scale = scale
+        self.shift = shift
 
         if exists(ckpt_path):
             assert os.path.exists(ckpt_path), f'[AutoencoderKL] Checkpoint {ckpt_path} not found!'
@@ -487,42 +491,41 @@ class AutoencoderKL(nn.Module):
             import warnings
             warnings.warn(f'[AutoencoderKL] No checkpoint provided. Random initialization.')
 
-    def encode(self, x, normalize=False):
+    @torch.no_grad()
+    def encode(self, x: torch.Tensor, return_posterior=False):
         """
         Args:
-            x: input tensor (B, C, H, W) in range [-1, 1]
-            normalize: if True, normalizes the latent code with SDs
-                LATENT_SCALE before returning z with (B, C, H, W).
-                Otherwise, returns the DiagonalGaussianDistribution
-                object (default).
+            x: input tensor (B, C, H, W) in range [-1, 1] scaled with
+                self.scale and shifted with self.shift
+            return_posterior: return the posterior distribution
         """
         h = self.encoder(x)
         moments = self.quant_conv(h)
         posterior = DiagonalGaussianDistribution(moments)
-        if normalize:
-            return posterior.mode() * LATENT_SCALE
-        return posterior
+        if return_posterior:
+            return posterior
+        latent = posterior.mode()
+        return (latent + self.shift) * self.scale
 
-    def decode(self, z, denorm=False):
+    @torch.no_grad()
+    def decode(self, z: torch.Tensor):
         """
         Args:
             z: latent code tensor (B, C, H, W)
-            denorm: if True, denormalizes the latent code
-                with SDs LATENT_SCALE before decoding.
         """
-        if denorm:
-            z = z / LATENT_SCALE
+        z = z / self.scale + self.shift
         z = self.post_quant_conv(z)
         dec = self.decoder(z)
         return dec
 
     def forward(self, input, sample_posterior=True):
-        posterior = self.encode(input, normalize=False)
+        posterior = self.encode(input, return_posterior=True)
         if sample_posterior:
             z = posterior.sample()
         else:
             z = posterior.mode()
-        dec = self.decode(z, denorm=False)
+        z = (z + self.shift) * self.scale
+        dec = self.decode(z)
         return dec, posterior
 
 

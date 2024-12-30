@@ -1,6 +1,6 @@
 # custom folders
 sandbox
-later
+checkpoints
 *logs
 
 venv
@@ -11,3 +11,4 @@ venv
 
 *.DS_Store
 *.gif
+*.png
