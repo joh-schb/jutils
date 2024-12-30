@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image
 import torch.nn as nn
 from torch import Tensor
+import matplotlib.pyplot as plt
 
 
 def norm(im):
@@ -57,19 +58,48 @@ def tensor2im(tensor, denormalize_zero_one=False):
     return im
 
 
-def alpha_compose(bg_im, fg_im, alpha=0.5):
+def alpha_compose(bg_im, fg_im, alpha=0.5, resizer=Image.Resampling.BILINEAR):
     if not isinstance(bg_im, Image.Image):
         bg_im = Image.fromarray(bg_im)
     if not isinstance(fg_im, Image.Image):
         fg_im = Image.fromarray(fg_im)
-        if fg_im.size != bg_im.size:
-            fg_im = fg_im.resize(bg_im.size)
+    if fg_im.size != bg_im.size:
+        fg_im = fg_im.resize(bg_im.size, resample=resizer)
     image = bg_im.convert('RGB')
     fg = fg_im.convert('RGBA')
     alpha = int(255 * alpha)
     fg.putalpha(alpha)
     image.paste(fg, (0, 0), fg)
     return image
+
+
+def alpha_compose_heatmap(image, heatmap, alpha=0.5, cmap='viridis', resizer=Image.Resampling.BILINEAR):
+    """
+    Args:
+        image: PIL image
+        heatmap: torch.Tensor or np.ndarray of shape (h, w)
+        alpha: float, alpha value for the heatmap
+        cmap: str, pyplot colormap for the heatmap (default: 'viridis')
+        resizer: PIL resampling filter for resizing the heatmap (default: Image.Resampling.BILINEAR)
+    
+    Returns:
+        PIL image
+    """
+    if not isinstance(image, Image.Image):
+        image = Image.fromarray(image)
+    
+    if isinstance(heatmap, torch.Tensor):
+        heatmap = heatmap.cpu().numpy()
+    assert heatmap.ndim == 2, 'heatmap must be 2D (H, W)'
+
+    # min-max normalize the heatmap
+    heatmap = (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min())
+
+    cmapper = plt.get_cmap(cmap)
+    heatmap = cmapper(heatmap, bytes=True)[:, :, :3]
+    heatmap = Image.fromarray(heatmap)
+
+    return alpha_compose(image, heatmap, alpha=alpha, resizer=resizer)
 
 
 def get_original_reconstruction_image(x, x_hat, channels_first=False):
@@ -201,6 +231,14 @@ if __name__ == "__main__":
     im_b = (np.random.randn(*im_a.shape) * 127.5 + 127.5).astype(np.uint8)
     im_c = alpha_compose(im_a, im_b, alpha=0.4)
     # im_c.show()
+
+    # alpha_compose_heatmap(image, heatmap, alpha=0.5, cmap='viridis', resizer=Image.Resampling.BILINEAR)
+    im = Image.open(im_fp)
+    x = np.linspace(-1, 1, 100)
+    x, y = np.meshgrid(x, x)
+    gaussian = np.exp(-(x**2 + y**2) / (2 * 0.5**2))
+    im_composed = alpha_compose_heatmap(im, gaussian, alpha=0.5, cmap='viridis')
+    im_composed.show()
 
     # get_original_reconstruction_image(x, x_hat, channels_first=True)
     im_orig = np.array(Image.open(im_fp))

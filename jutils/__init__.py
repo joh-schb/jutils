@@ -1,6 +1,8 @@
 # vision (image, video, depth) functions
 # image
-from jutils.vision import alpha_compose, get_original_reconstruction_image
+from jutils.vision import alpha_compose
+from jutils.vision import alpha_compose_heatmap
+from jutils.vision import get_original_reconstruction_image
 from jutils.vision import norm, denorm
 from jutils.vision import im2tensor, tensor2im
 from jutils.vision import zero_pad
