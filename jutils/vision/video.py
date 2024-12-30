@@ -7,12 +7,13 @@ from matplotlib.animation import FuncAnimation
 from IPython.display import HTML
 
 
-def save_as_gif(video, path, duration=120, loop=0, optimize=True):
+def save_as_gif(video, path, fps=15, loop=0, optimize=True):
     """
     Args:
         video: Video of type uint8 of shape (f, h, w, c)
         path: Filepath.
     """
+    duration = int(1000 / fps)
     if not isinstance(video, np.ndarray):
         video = np.array(video)
     if not video.dtype == np.uint8:
