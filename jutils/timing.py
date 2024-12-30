@@ -1,11 +1,17 @@
 import time
 import datetime
+from typing import Union
+
+
+def format_time(seconds: Union[int, float]) -> str:
+    """ Convert seconds to human readable string with hours, minutes and seconds. """
+    hours, rem = divmod(seconds, 3600)
+    minutes, seconds = divmod(rem, 60)
+    return "{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds)
 
 
 def timer(start, end):
-    hours, rem = divmod(end - start, 3600)
-    minutes, seconds = divmod(rem, 60)
-    return "{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds)
+    return format_time(end - start)
 
 
 def get_time(str_format: str = '%H:%M:%S.%f'):
@@ -19,10 +25,14 @@ class Timer:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.end = time.time()
-        self.time = timer(self.start, self.end)
+        self.delta = self.end - self.start
+        self.time = format_time(self.delta)
 
 
 if __name__ == "__main__":
+    # format_time
+    print("format_time(123456):", format_time(90123.45))
+
     # timer(start, end)
     t0 = time.time()
     time.sleep(2)

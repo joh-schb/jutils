@@ -31,12 +31,13 @@ from jutils.instantiate import load_partial_from_config
 from jutils.log import get_logger
 
 # time functions
-from jutils.timing import timer, get_time, Timer
+from jutils.timing import timer, get_time, Timer, format_time
 
 # torch-related functions
 from jutils.torchy import freeze
 from jutils.torchy import get_tensor_size
 from jutils.torchy import count_parameters
+from jutils.torchy import get_grad_norm
 
 # models
 # ... can only be imported via jutils.nn.<module>
