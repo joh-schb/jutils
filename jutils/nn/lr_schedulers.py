@@ -141,4 +141,4 @@ if __name__ == "__main__":
         lbl = f"{schedule.__name__}({kwargs_str})"
         plt.plot(lrs, label=lbl)
     plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=1)
-    fig.savefig('lr-schedulers.png', bbox_inches='tight')
+    fig.savefig('_lr-schedulers.png', bbox_inches='tight')

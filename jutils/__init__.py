@@ -25,7 +25,14 @@ from jutils.helpers import suppress_stdout
 from jutils.helpers import pad_v_like_x
 from jutils.helpers import NullObject
 from jutils.helpers import bool2str
-from jutils.helpers import JCOLORS
+
+# colors
+from jutils.colors import Colors
+from jutils.colors import JCOLORS
+from jutils.colors import hex_to_rgb
+from jutils.colors import interpolate_color_list
+from jutils.colors import interpolate_colors
+from jutils.colors import visualize_color_list
 
 # instantiate
 from jutils.instantiate import get_obj_from_str
