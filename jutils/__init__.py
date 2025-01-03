@@ -25,6 +25,7 @@ from jutils.helpers import suppress_stdout
 from jutils.helpers import pad_v_like_x
 from jutils.helpers import NullObject
 from jutils.helpers import bool2str
+from jutils.helpers import JCOLORS
 
 # instantiate
 from jutils.instantiate import get_obj_from_str

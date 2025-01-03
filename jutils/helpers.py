@@ -85,6 +85,45 @@ class NullObject:
         pass
 
 
+class _Colors:
+    def __init__(self):
+        self.lmu = "#00883a"
+        self.cvgroup = "#131285"
+        self.spezi = ['#49277d', '#e3027e', '#e10612', '#ec6605', '#fbb901']
+        self.fivemap = ['gold', 'C1', 'C3', 'C4', 'C0']
+    
+    def interpolate(self, n, color1=(0.60156, 0, 0.99218), color2=(0.86328, 0.47656, 0.31250)):
+        red_difference = color2[0]-color1[0]
+        green_difference = color2[1]-color1[1]
+        blue_difference = color2[2]-color1[2]
+
+        red_delta = red_difference/n
+        green_delta = green_difference/n
+        blue_delta = blue_difference/n
+
+        _colors = [
+                # apply the delta to the red, green and blue channels
+            (color1[0] + (red_delta * i),
+             color1[1] + (green_delta * i),
+             color1[2] + (blue_delta * i))
+             for i in range(n)
+        ]
+        return _colors
+
+    def __repr__(self):
+        return_str = ""
+        for color in self.__dict__.keys():
+            dtype = type(self.__dict__[color])
+            if dtype == str:
+                return_str += f"{color:<12}: {self.__dict__[color]}\n"
+            elif dtype == list:
+                length = len(self.__dict__[color])
+                return_str += f"{color + f' ({length})':<12}: {self.__dict__[color]}\n"
+        return return_str
+
+JCOLORS = _Colors()
+
+
 if __name__ == "__main__":
     # convert_size(size_bytes)
     print("convert_size(1_000_000_000):", convert_size(1_000_000_000))
@@ -108,3 +147,13 @@ if __name__ == "__main__":
     # NullObject
     null = NullObject()
     print("NullObject():", null('a', 123))
+
+    # _Colors
+    print(JCOLORS)
+
+    # interpolate colors
+    import matplotlib.pyplot as plt
+    cs = JCOLORS.interpolate(20)
+    for i, c in enumerate(cs):
+        plt.plot([0, 1], [i, i], color=c, linewidth=10)
+    plt.savefig("_color_interpolation.png")
