@@ -118,4 +118,4 @@ if __name__ == "__main__":
     print("colorized.min():", colorized.min())
     print("colorized.max():", colorized.max())
     print("colorized.dtype:", colorized.dtype)
-    Image.fromarray(colorized[0]).save("colorized-depth-map.png")
+    Image.fromarray(colorized[0]).save("_colorized-depth-map.png")

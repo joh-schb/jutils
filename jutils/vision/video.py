@@ -86,10 +86,10 @@ if __name__ == "__main__":
     # display(animate_video(vid))
 
     # save video as gif
-    save_as_gif(vid, 'test.gif')
+    save_as_gif(vid, '_test.gif')
 
     # colorize_border(x, cond_frames, channel=0, value=255, pad=1)
     vid = np.random.randint(0, 255, (1, 3, 10, 256, 256))
     vid = colorize_border(vid, 5, channel=0, value=255, pad=20)[0]
     vid = einops.rearrange(vid, 'c f h w -> f h w c')
-    save_as_gif(vid, 'colorized-border.gif')
+    save_as_gif(vid, '_colorized-border.gif')
