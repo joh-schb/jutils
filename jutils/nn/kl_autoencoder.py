@@ -484,9 +484,9 @@ class AutoencoderKL(nn.Module):
             assert os.path.exists(ckpt_path), f'[AutoencoderKL] Checkpoint {ckpt_path} not found!'
             print(f'[AutoencoderKL] Loading checkpoint from {ckpt_path}')
             if torch.cuda.is_available():
-                self.load_state_dict(torch.load(ckpt_path))
+                self.load_state_dict(torch.load(ckpt_path, weights_only=True))
             else:
-                self.load_state_dict(torch.load(ckpt_path, map_location=torch.device('cpu')))
+                self.load_state_dict(torch.load(ckpt_path, weights_only=True, map_location=torch.device('cpu')))
         else:
             import warnings
             warnings.warn(f'[AutoencoderKL] No checkpoint provided. Random initialization.')
