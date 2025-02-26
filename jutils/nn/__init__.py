@@ -1,4 +1,5 @@
-from jutils.nn.attention import update_ema
+from jutils.nn.ema import update_ema
+
 from jutils.nn.attention import Attention
 from jutils.nn.attention import QKVAttention
 from jutils.nn.kl_autoencoder import AutoencoderKL
