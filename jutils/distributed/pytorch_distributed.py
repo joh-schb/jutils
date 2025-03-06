@@ -144,7 +144,7 @@ def reduce(tensor, op=dist.ReduceOp.SUM):
     return tensor
 
 
-def gather(data):
+def gather(data, *args, **kwargs):
     world_size = get_world_size()
 
     if world_size == 1:
@@ -153,9 +153,9 @@ def gather(data):
     output_list = [torch.zeros_like(data) for _ in range(world_size)]
 
     if is_primary():
-        dist.gather(data, gather_list=output_list)
+        dist.gather(data, gather_list=output_list, *args, **kwargs)
     else:
-        dist.gather(data)
+        dist.gather(data, *args, **kwargs)
 
     return output_list
 
@@ -170,16 +170,16 @@ def sync_params(params):
                 dist.broadcast(p, 0)
 
 
-def barrier():
+def barrier(*args, **kwargs):
     world_size = get_world_size()
     if world_size == 1:
         return
-    dist.barrier()
+    dist.barrier(*args, **kwargs)
 
 
 # wrapper with same functionality but better readability as barrier
-def wait_for_everyone():
-    barrier()
+def wait_for_everyone(*args, **kwargs):
+    barrier(*args, **kwargs)
 
 
 def print_primary(*args, **kwargs):
