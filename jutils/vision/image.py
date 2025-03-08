@@ -198,6 +198,31 @@ def center_crop_pil(im, new_height, new_width):
     return im
 
 
+def resize_shorter_side_pil(image: Image, target_size: int):
+    """
+    Args:
+        image: PIL image or numpy array of shape (h, w, c)
+        target_size: Size of the shorter side
+    Returns:
+        PIL image or numpy array of shape (h', w', c)
+    """
+    is_np = isinstance(image, np.ndarray)
+    if is_np:
+        assert len(image.shape) == 3, f"Image must be of shape (h, w, c). Got {image.shape}."
+        image = Image.fromarray(image)
+    w, h = image.size  # PIL uses (w, h)
+
+    if h < w:
+        new_h, new_w = target_size, int(w * (target_size / h))
+    else:
+        new_w, new_h = target_size, int(h * (target_size / w))
+
+    resized_pil = image.resize((new_w, new_h), Image.Resampling.LANCZOS)
+    if is_np:
+        return np.array(resized_pil)
+    return resized_pil
+
+
 def ims_to_grid(ims, stack="row", split=4, channel_last=False):
     """
     Args:
@@ -301,3 +326,9 @@ if __name__ == "__main__":
     print("ims_to_grid(ims, stack='row', split=4).shape:", grid1.shape)
     print("ims_to_grid(ims, stack='col', split=2, channel_last=True).shape:", grid2.shape)
     Image.fromarray(denorm(grid1).to(torch.uint8).numpy()).show()
+
+    # resize_shorter_side_pil(image: Image, target_size: int)
+    img = Image.open(im_fp)
+    resized = resize_shorter_side_pil(img, 80)
+    print("resize_shorter_side_pil(img, 256).size:", resized.size)
+    resized.show()

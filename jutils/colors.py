@@ -34,7 +34,7 @@ def hex_to_rgb(hex):
     return tuple(int(hex[i:i+2], 16) for i in (0, 2, 4))
 
 
-def interpolate_color_list(n, clist=None):
+def interpolate_color_list(clist=None, n=5):
     if clist is None:
         clist = JCOLORS.spezi
     if isinstance(clist[0], str):       # convert from hex to rgb
