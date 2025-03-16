@@ -78,4 +78,4 @@ if __name__ == "__main__":
     axes[2].plot(out['ema']['biases'], label='EMA biases')
     axes[2].legend()
 
-    plt.savefig("ema.png")
+    plt.savefig("_ema.png")

@@ -93,7 +93,7 @@ if __name__ == "__main__":
     print(JCOLORS)
 
     # interpolate and visualize colors
-    interpolated_colors = interpolate_color_list(10, JCOLORS.spezi)
+    interpolated_colors = interpolate_color_list(JCOLORS.spezi, 10)
     fix, ax = plt.subplots()
     visualize_color_list(interpolated_colors, ax)
     plt.savefig("_interpolate_color_list.png")

@@ -35,6 +35,11 @@ from jutils.colors import interpolate_color_list
 from jutils.colors import interpolate_colors
 from jutils.colors import visualize_color_list
 
+# plotting / rcparams
+from jutils.rcparams import RCPARAMS
+from jutils.rcparams import ALL_RCPARAMS
+from jutils.rcparams import set_rcparams
+
 # instantiate
 from jutils.instantiate import get_obj_from_str
 from jutils.instantiate import instantiate_from_config
