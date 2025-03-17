@@ -5,7 +5,7 @@ RCPARAMS = {
     # figure
     'figure.dpi': 150,
     'figure.figsize': (6, 2.5),
-    'savefig.pad_inches': 0.05,
+    'savefig.pad_inches': 0.02,
     'axes.linewidth': 0.75,
     'savefig.bbox': 'tight',
     # grid
@@ -34,15 +34,30 @@ RCPARAMS = {
     # font
     'font.weight': 300,
     'font.size': 10,
-    'font.family': 'Avenir',        # ranking: 'Avenir', 'Palatino', 'PT Serif', 'Times New Roman', 'Helvetica'
+    'font.family': 'sans-serif',        # ranking: 'Avenir', 'Palatino', 'PT Serif', 'Times New Roman', 'Helvetica'
 }
 plt.rcParams.update(RCPARAMS)
 ALL_RCPARAMS = dict(plt.rcParams)
 
 
-def set_rcparams():
+def set_rcparams(fontfamily='sans-serif', fontsize=10, xyticks_minor=False, grid=True, figsize=(6, 2.5)):
+    """
+    Args:
+        fontfamily: 'Avenir', 'Palatino', 'PT Serif', 'Times New Roman', 'Helvetica', or default 'sans-serif'
+        fontsize: size of the output font
+        xyticks_minor: show small ticks (x, y)
+        grid: show grid
+        figsize: size of the figure
+    """
     plt.rcdefaults()
-    plt.rcParams.update(RCPARAMS)
+    new_rcparams = ALL_RCPARAMS.copy()
+    new_rcparams['xtick.minor.visible'] = xyticks_minor
+    new_rcparams['ytick.minor.visible'] = xyticks_minor
+    new_rcparams['font.size'] = fontsize
+    new_rcparams['font.family'] = fontfamily
+    new_rcparams['figure.figsize'] = figsize
+    new_rcparams['axes.grid'] = grid
+    plt.rcParams.update(new_rcparams)
 
 
 if __name__ == "__main__":
