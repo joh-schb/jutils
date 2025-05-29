@@ -6,6 +6,7 @@ from PIL import Image
 import torch.nn as nn
 from torch import Tensor
 import matplotlib.pyplot as plt
+from PIL import ImageDraw, ImageFont
 
 
 def norm(im):
@@ -244,6 +245,28 @@ def ims_to_grid(ims, stack="row", split=4, channel_last=False):
     return ims
 
 
+def text_to_canvas(txt, h, w=None, background=(0, 0, 0), fontcolor=(255, 255, 0), font_size=24):
+    """
+    Create an image with text and return it as a NumPy array of shape (h, w, 3) dtype uint8.
+    """
+    w = w or h
+    image = Image.new("RGB", (w, h), color=background)
+    draw = ImageDraw.Draw(image)
+
+    try: font = ImageFont.truetype("DejaVuSans.ttf", font_size)
+    except IOError: font = ImageFont.load_default()
+
+    # Calculate text size and position it in the center
+    text_bbox = draw.textbbox((0, 0), txt, font=font)
+    text_width = text_bbox[2] - text_bbox[0]
+    text_height = text_bbox[3] - text_bbox[1]
+    position = ((w - text_width) // 2, (h - text_height) // 2)
+
+    draw.text(position, txt, fill=fontcolor, font=font)
+    
+    return np.array(image)
+
+
 """ Unit Testing """
 
 
@@ -332,3 +355,8 @@ if __name__ == "__main__":
     resized = resize_shorter_side_pil(img, 80)
     print("resize_shorter_side_pil(img, 256).size:", resized.size)
     resized.show()
+
+    # text_to_canvas(txt, h, w=None, background=(0, 0, 0), fontcolor=(255, 255, 0), font_size=24)
+    canvas = text_to_canvas("Hello, World!\nHow are you?", 200, 400, background=(0, 0, 0), fontcolor=(255, 255, 0), font_size=24)
+    print("text_to_canvas(txt, h, w).shape:", canvas.shape)
+    Image.fromarray(canvas).show()
