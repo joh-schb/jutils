@@ -1,6 +1,7 @@
 import os
 import sys
 import math
+import numpy as np
 from typing import Any
 from contextlib import contextmanager
 
@@ -17,6 +18,14 @@ def default(val, d):
     if exists(val):
         return val
     return d() if callable(d) else d
+
+
+def divisible_by(num, den):
+    return (num % den) == 0
+
+
+def is_odd(n):
+    return not divisible_by(n, 2)
 
 
 def bool2str(val):
@@ -62,12 +71,26 @@ def suppress_stdout():
 
 def pad_v_like_x(v_, x_):
     """
-    Function to reshape the vector by the number of dimensions
-    of x. E.g. x (bs, c, h, w), v (bs) -> v (bs, 1, 1, 1).
+    Reshape or broadcast v_ to match the number of dimensions of x_ by appending singleton dims.
+
+    For example:
+    - x_: (b, c, h, w), v_: (b,) -> (b, 1, 1, 1)
+    - x_: (b, c, f, h, w), v_: (b, 1, f) -> (b, 1, f, 1, 1)
     """
-    if isinstance(v_, float):
+    if isinstance(v_, (float, int)):
         return v_
-    return v_.reshape(-1, *([1] * (x_.ndim - 1)))
+
+    if isinstance(v_, np.ndarray):
+        while v_.ndim < x_.ndim:
+            v_ = np.expand_dims(v_, -1)
+        return v_
+
+    if torch.is_tensor(v_):
+        while v_.ndim < x_.ndim:
+            v_ = v_.unsqueeze(-1)
+        return v_
+
+    raise TypeError(f"Unsupported input type for v_: {type(v_)}")
 
 
 class NullObject:
