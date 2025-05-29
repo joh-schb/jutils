@@ -1,10 +1,45 @@
-import einops
 import torch
+import einops
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 from IPython.display import HTML
+from matplotlib.animation import FuncAnimation
+
+
+def vid2tensor(video, normalize_zero_one=False):
+    """
+    Args:
+        video: Numpy array of shape (T, H, W, C) or (B, T, H, W, C), range [0, 255]
+        normalize_zero_one: If True, normalize to [0, 1]; otherwise to [-1, 1]
+    Returns:
+        Tensor of shape (C, T, H, W) or (B, C, T, H, W), normalized
+    """
+    assert len(video.shape) in {4, 5}, f"Expected shape (T, H, W, C) or (B, T, H, W, C), got {video.shape}"
+    if isinstance(video, np.ndarray):
+        video = torch.from_numpy(video).float()
+    video = video / 255. if normalize_zero_one else video / 127.5 - 1.
+    video = einops.rearrange(video, '... t h w c -> ... c t h w')
+    return video
+
+
+def tensor2vid(tensor, denormalize_zero_one=False):
+    """
+    Args:
+        tensor: Tensor of shape (B, C, T, H, W) or (C, T, H, W), with values in [-1, 1] or [0, 1]
+        denormalize_zero_one: If True, assumes input is in [0, 1]; otherwise in [-1, 1]
+    Returns:
+        Numpy array of shape (B, T, H, W, C) or (T, H, W, C) in range [0, 255], uint8.
+    """
+    assert len(tensor.shape) in {4, 5}, f"Expected shape (B, C, T, H, W) or (C, T, H, W), got {tensor.shape}"
+    if len(tensor.shape) == 5 and tensor.shape[0] == 1:
+        tensor = tensor[0]
+    if isinstance(tensor, torch.Tensor):
+        tensor = tensor.detach().cpu().numpy()
+    video = einops.rearrange(tensor, '... c t h w -> ... t h w c')
+    video = video * 255. if denormalize_zero_one else (video + 1.) * 127.5
+    video = np.clip(video, 0, 255).astype(np.uint8)
+    return video
 
 
 def save_as_gif(video, path, fps=15, loop=0, optimize=True):
@@ -80,7 +115,11 @@ def colorize_border(x, cond_frames: int, channel=0, value=255, pad=1):
 
 
 if __name__ == "__main__":
-    vid = np.random.randint(0, 255, (10, 256, 256, 3))
+    vid = np.random.randint(0, 256, (10, 128, 128, 3), dtype=np.uint8)
+
+    # vid2tensor and tensor2vid
+    vid_out = tensor2vid(vid2tensor(vid))
+    print("tensor2vid(vid2tensor(video)) - close:", np.allclose(vid.astype(np.float32), vid_out.astype(np.float32), atol=1))
 
     # display video in jupyter notebook
     # display(animate_video(vid))
