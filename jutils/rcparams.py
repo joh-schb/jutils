@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 plt.rcdefaults()
 RCPARAMS = {
     # figure
-    'figure.dpi': 150,
+    'figure.dpi': 300,
     'figure.figsize': (6, 2.5),
     'savefig.pad_inches': 0.02,
     'axes.linewidth': 0.75,

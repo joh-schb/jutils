@@ -19,9 +19,10 @@ def count_parameters(model: nn.Module, return_int: bool = False):
     return f'{n_params:,}'
 
 
-def freeze(model: nn.Module):
-    for param in model.parameters():
-        param.requires_grad = False
+def freeze(model: nn.Module) -> nn.Module:
+    for p in model.parameters():
+        p.requires_grad_(False)
+    return model
 
 
 def get_grad_norm(model: nn.Module):
