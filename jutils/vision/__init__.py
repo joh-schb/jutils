@@ -11,10 +11,12 @@ from jutils.vision.image import resize_ims
 from jutils.vision.image import center_crop_np, center_crop_pil
 from jutils.vision.image import resize_shorter_side_pil
 from jutils.vision.image import ims_to_grid
+from jutils.vision.image import text_to_canvas
 
 # video
 from jutils.vision.video import save_as_gif, animate_video
 from jutils.vision.video import colorize_border
+from jutils.vision.video import vid2tensor, tensor2vid
 
 # depth
 from jutils.vision.depth import colorize_depth_map

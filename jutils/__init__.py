@@ -12,9 +12,11 @@ from jutils.vision import resize_ims
 from jutils.vision import center_crop_np, center_crop_pil
 from jutils.vision import resize_shorter_side_pil
 from jutils.vision import ims_to_grid
+from jutils.vision import text_to_canvas
 # video
 from jutils.vision import save_as_gif, animate_video
 from jutils.vision import colorize_border
+from jutils.vision import vid2tensor, tensor2vid
 # depth
 from jutils.vision import colorize_depth_map
 
@@ -26,6 +28,8 @@ from jutils.helpers import suppress_stdout
 from jutils.helpers import pad_v_like_x
 from jutils.helpers import NullObject
 from jutils.helpers import bool2str
+from jutils.helpers import divisible_by
+from jutils.helpers import is_odd
 
 # colors
 from jutils.colors import Colors
