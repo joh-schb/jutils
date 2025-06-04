@@ -38,6 +38,7 @@ RCPARAMS = {
 }
 plt.rcParams.update(RCPARAMS)
 ALL_RCPARAMS = dict(plt.rcParams)
+plt.rcdefaults()
 
 
 def set_rcparams(fontfamily='sans-serif', fontsize=10, xyticks_minor=False, grid=True, figsize=(6, 2.5)):
