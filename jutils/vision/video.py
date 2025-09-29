@@ -2,6 +2,7 @@ import torch
 import einops
 import numpy as np
 from PIL import Image
+from typing import Union, Tuple
 import matplotlib.pyplot as plt
 from IPython.display import HTML
 from matplotlib.animation import FuncAnimation
@@ -40,6 +41,29 @@ def tensor2vid(tensor, denormalize_zero_one=False):
     video = video * 255. if denormalize_zero_one else (video + 1.) * 127.5
     video = np.clip(video, 0, 255).astype(np.uint8)
     return video
+
+
+def center_crop_video(video, crop_size: Union[int, Tuple[int, int]]):
+    """
+    Args:
+        video (np.ndarray or torch.Tensor): Input video of shape (B, C, T, H, W) or (C, T, H, W)
+        crop_size (tuple or int): Desired height and/or width
+
+    Returns:
+        Cropped video of same type and dimensionality
+    """
+    assert len(video.shape) in {4, 5}, f"Input video must be of shape (C, T, H, W) or (B, C, T, H, W), got {video.shape}"
+    *_, h, w = video.shape
+    if isinstance(crop_size, int):
+        crop_h, crop_w = crop_size, crop_size
+    elif isinstance(crop_size, tuple) and len(crop_size) == 2:
+        crop_h, crop_w = crop_size
+    else:
+        raise ValueError("crop_size must be an int or a tuple of two ints (height, width)")
+    top = max((h - crop_h) // 2, 0)
+    left = max((w - crop_w) // 2, 0)
+    cropped = video[..., top:top+crop_h, left:left+crop_w]
+    return cropped
 
 
 def save_as_gif(video, path, fps=15, loop=0, optimize=True):
@@ -120,6 +144,11 @@ if __name__ == "__main__":
     # vid2tensor and tensor2vid
     vid_out = tensor2vid(vid2tensor(vid))
     print("tensor2vid(vid2tensor(video)) - close:", np.allclose(vid.astype(np.float32), vid_out.astype(np.float32), atol=1))
+
+    # center_crop_video
+    crop_vid = torch.randn((3, 10, 128, 128))
+    cropped_vid = center_crop_video(crop_vid, (64, 100))
+    print(f"center_crop_video shape: {crop_vid.shape} -> {cropped_vid.shape}")
 
     # display video in jupyter notebook
     # display(animate_video(vid))

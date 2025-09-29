@@ -17,6 +17,7 @@ from jutils.vision.image import text_to_canvas
 from jutils.vision.video import save_as_gif, animate_video
 from jutils.vision.video import colorize_border
 from jutils.vision.video import vid2tensor, tensor2vid
+from jutils.vision.video import center_crop_video
 
 # depth
 from jutils.vision.depth import colorize_depth_map

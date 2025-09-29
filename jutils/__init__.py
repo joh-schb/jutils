@@ -17,6 +17,7 @@ from jutils.vision import text_to_canvas
 from jutils.vision import save_as_gif, animate_video
 from jutils.vision import colorize_border
 from jutils.vision import vid2tensor, tensor2vid
+from jutils.vision import center_crop_video
 # depth
 from jutils.vision import colorize_depth_map
 
@@ -38,6 +39,7 @@ from jutils.colors import hex_to_rgb
 from jutils.colors import interpolate_color_list
 from jutils.colors import interpolate_colors
 from jutils.colors import visualize_color_list
+from jutils.colors import get_n_colors_from_cmap
 
 # plotting / rcparams
 from jutils.rcparams import RCPARAMS

@@ -1,10 +1,12 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class Colors:
     def __init__(self):
         self.lmu = "#00883a"
         self.cvgroup = "#131285"
+        self.meta = '#0064E0'
         self.spezi = ['#49277d', '#e3027e', '#e10612', '#ec6605', '#fbb901']
         self.fivemap = ['#FFD700', '#ff7f0e', '#d62728', '#9467bd', '#1f77b4']
         self.pyplot = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
@@ -79,6 +81,13 @@ def interpolate_colors(n, color1=(0.60156, 0, 0.99218), color2=(0.86328, 0.47656
     return _colors
 
 
+def get_n_colors_from_cmap(cmap='plasma', n=10):
+    assert n > 1, f"Number of colors must be greater than 1, got {n}"
+    cmap = plt.get_cmap(cmap)
+    colors = [cmap(i / (n - 1))[:3] for i in range(n)]
+    return colors
+
+
 def visualize_color_list(clist, ax=None):
     if ax is None: fig, ax = plt.subplots()
     for i, c in enumerate(clist):
@@ -87,8 +96,6 @@ def visualize_color_list(clist, ax=None):
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
     # _Colors
     print(JCOLORS)
 
@@ -103,3 +110,10 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
     visualize_color_list(colors, ax)
     plt.savefig("_interpolate_colors.png")
+
+    # get_n_colors_from_cmap
+    cmap_colors = get_n_colors_from_cmap('plasma', 10)
+    for i, c in enumerate(cmap_colors):
+        plt.plot([0, 1], [i, i], color=c, linewidth=10)
+    plt.savefig("_get_n_colors_from_cmap.png")
+    print("Colors from colormap:", len(cmap_colors))
