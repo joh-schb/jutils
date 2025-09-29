@@ -2,6 +2,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+__all__ = [
+    "Colors",
+    "JCOLORS",
+    "hex_to_rgb",
+    "interpolate_color_list",
+    "interpolate_colors",
+    "visualize_color_list",
+    "get_n_colors_from_cmap",
+]
+# ===============================================================================================
+
+
 class Colors:
     def __init__(self):
         self.lmu = "#00883a"

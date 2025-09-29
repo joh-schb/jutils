@@ -5,6 +5,17 @@ import torch.nn as nn
 from einops import rearrange
 from inspect import isfunction
 
+
+__all__ = [
+    "AutoencoderKL",
+    "Encoder",
+    "Decoder",
+    "DiagonalGaussianDistribution",
+    "LATENT_SCALE",
+]
+# ===============================================================================================
+
+
 try:
     _ = nn.functional.scaled_dot_product_attention
     EFFICIENT_ATTN_AVAILABLE = True

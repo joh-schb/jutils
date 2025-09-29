@@ -4,6 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+__all__ = [
+    "colorize_depth_map",
+]
+# ===============================================================================================
+
+
 def exists(v):
     return v is not None
 

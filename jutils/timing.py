@@ -3,6 +3,15 @@ import datetime
 from typing import Union
 
 
+__all__ = [
+    "format_time",
+    "timer",
+    "get_time",
+    "Timer",
+]
+# ===============================================================================================
+
+
 def format_time(seconds: Union[int, float]) -> str:
     """ Convert seconds to human readable string with hours, minutes and seconds. """
     hours, rem = divmod(seconds, 3600)

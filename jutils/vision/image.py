@@ -1,12 +1,36 @@
 import os
 import torch
 import einops
+import textwrap
 import numpy as np
 from PIL import Image
 import torch.nn as nn
 from torch import Tensor
 import matplotlib.pyplot as plt
 from PIL import ImageDraw, ImageFont
+
+
+__all__ = [
+    "norm",
+    "denorm",
+    "im2tensor",
+    "tensor2im",
+    "alpha_compose",
+    "alpha_compose_heatmap",
+    "get_original_reconstruction_image",
+    "zero_pad",
+    "hwc2chw",
+    "chw2hwc",
+    "per_sample_min_max_normalization",
+    "resize_ims",
+    "center_crop_np",
+    "center_crop_pil",
+    "resize_shorter_side_pil",
+    "ims_to_grid",
+    "soft_wrap",
+    "text_to_canvas",
+]
+# ===============================================================================================
 
 
 def norm(im):
@@ -245,6 +269,10 @@ def ims_to_grid(ims, stack="row", split=4, channel_last=False):
     return ims
 
 
+def soft_wrap(s: str, n: int) -> str:
+    return textwrap.fill(s, width=n, break_long_words=True, break_on_hyphens=False)
+
+
 def text_to_canvas(txt, h, w=None, background=(0, 0, 0), fontcolor=(255, 255, 0), font_size=24):
     """
     Create an image with text and return it as a NumPy array of shape (h, w, 3) dtype uint8.
@@ -357,6 +385,7 @@ if __name__ == "__main__":
     resized.show()
 
     # text_to_canvas(txt, h, w=None, background=(0, 0, 0), fontcolor=(255, 255, 0), font_size=24)
-    canvas = text_to_canvas("Hello, World!\nHow are you?", 200, 400, background=(0, 0, 0), fontcolor=(255, 255, 0), font_size=24)
+    txt = "Hello, World! How are you? This is a long text that should wrap"
+    canvas = text_to_canvas(soft_wrap(txt, 20), 100, 200, background=(0, 0, 0), fontcolor=(255, 255, 0), font_size=24)
     print("text_to_canvas(txt, h, w).shape:", canvas.shape)
     Image.fromarray(canvas).show()

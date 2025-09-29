@@ -1,6 +1,15 @@
+import numpy as np
 import matplotlib.pyplot as plt
 
-plt.rcdefaults()
+__all__ = [
+    "RCPARAMS",
+    "ALL_RCPARAMS",
+    "set_rcparams",
+    "extract_image_from_fig",
+]
+# ===============================================================================================
+
+
 RCPARAMS = {
     # figure
     'figure.dpi': 300,
@@ -36,12 +45,10 @@ RCPARAMS = {
     'font.size': 10,
     'font.family': 'sans-serif',        # ranking: 'Avenir', 'Palatino', 'PT Serif', 'Times New Roman', 'Helvetica'
 }
-plt.rcParams.update(RCPARAMS)
 ALL_RCPARAMS = dict(plt.rcParams)
-plt.rcdefaults()
 
 
-def set_rcparams(fontfamily='sans-serif', fontsize=10, xyticks_minor=False, grid=True, figsize=(6, 2.5)):
+def set_rcparams(fontfamily='sans-serif', fontsize=10, xyticks_minor=False, grid=True, figsize=(6, 2.5), reset=True):
     """
     Args:
         fontfamily: 'Avenir', 'Palatino', 'PT Serif', 'Times New Roman', 'Helvetica', or default 'sans-serif'
@@ -50,7 +57,8 @@ def set_rcparams(fontfamily='sans-serif', fontsize=10, xyticks_minor=False, grid
         grid: show grid
         figsize: size of the figure
     """
-    plt.rcdefaults()
+    if reset:
+        plt.rcdefaults()
     new_rcparams = ALL_RCPARAMS.copy()
     new_rcparams['xtick.minor.visible'] = xyticks_minor
     new_rcparams['ytick.minor.visible'] = xyticks_minor
@@ -61,8 +69,15 @@ def set_rcparams(fontfamily='sans-serif', fontsize=10, xyticks_minor=False, grid
     plt.rcParams.update(new_rcparams)
 
 
+def extract_image_from_fig(fig: plt.Figure) -> np.ndarray:
+    """ Return an RGB image array from a Matplotlib Figure (h, w, 3) uint8. """
+    fig.tight_layout()
+    fig.canvas.draw()
+    img = np.asarray(fig.canvas.buffer_rgba())[..., :3]
+    return img
+
+
 if __name__ == "__main__":
-    import numpy as np
     x = np.linspace(0, 4, 10)
     
     fig, axes = plt.subplots(1, 1)
@@ -74,3 +89,8 @@ if __name__ == "__main__":
         axes.plot(x, y, '-o', label=f'Color {i}')
     plt.legend()
     plt.savefig("_rcparams.png")
+
+    fig, ax = plt.subplots()
+    ax.plot([0, 1], [0, 1])
+    img = extract_image_from_fig(fig)
+    print("Extracted image shape:", img.shape)

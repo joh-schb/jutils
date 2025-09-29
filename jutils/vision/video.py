@@ -8,6 +8,17 @@ from IPython.display import HTML
 from matplotlib.animation import FuncAnimation
 
 
+__all__ = [
+    "vid2tensor",
+    "tensor2vid",
+    "center_crop_video",
+    "save_as_gif",
+    "animate_video",
+    "colorize_border",
+]
+# ===============================================================================================
+
+
 def vid2tensor(video, normalize_zero_one=False):
     """
     Args:

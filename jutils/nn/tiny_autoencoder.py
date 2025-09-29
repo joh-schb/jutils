@@ -7,6 +7,10 @@ import torch
 import torch.nn as nn
 
 
+__all__ = ["TinyAutoencoderKL"]
+# ===============================================================================================
+
+
 def conv(n_in, n_out, **kwargs):
     return nn.Conv2d(n_in, n_out, 3, padding=1, **kwargs)
 

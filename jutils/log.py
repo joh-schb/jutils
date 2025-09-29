@@ -6,6 +6,12 @@ import functools
 from termcolor import colored
 
 
+__all__ = [
+    "get_logger",
+]
+# ===============================================================================================
+
+
 @functools.lru_cache()
 def get_logger(log_dir='./logs', rank=0, prefix=None, log_to_file=True, log_to_stdout=True):
     if not os.path.exists(log_dir):

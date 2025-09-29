@@ -2,6 +2,12 @@ import torch
 from collections import OrderedDict
 
 
+__all__ = ["update_ema"]
+
+
+# ===============================================================================================
+
+
 @torch.no_grad()
 def update_ema(ema_model, model, decay=0.9999):
     """

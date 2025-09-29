@@ -1,70 +1,50 @@
-# vision (image, video, depth) functions
-# image
-from jutils.vision import alpha_compose
-from jutils.vision import alpha_compose_heatmap
-from jutils.vision import get_original_reconstruction_image
-from jutils.vision import norm, denorm
-from jutils.vision import im2tensor, tensor2im
-from jutils.vision import zero_pad
-from jutils.vision import chw2hwc, hwc2chw
-from jutils.vision import per_sample_min_max_normalization
-from jutils.vision import resize_ims
-from jutils.vision import center_crop_np, center_crop_pil
-from jutils.vision import resize_shorter_side_pil
-from jutils.vision import ims_to_grid
-from jutils.vision import text_to_canvas
-# video
-from jutils.vision import save_as_gif, animate_video
-from jutils.vision import colorize_border
-from jutils.vision import vid2tensor, tensor2vid
-from jutils.vision import center_crop_video
-# depth
-from jutils.vision import colorize_depth_map
+# subpackages only importable as attributes
+from . import nn as nn
 
-# helpers
-from jutils.helpers import exists, is_odd, default
-from jutils.helpers import convert_size
-from jutils.helpers import Namespace
-from jutils.helpers import suppress_stdout
-from jutils.helpers import pad_v_like_x
-from jutils.helpers import NullObject
-from jutils.helpers import bool2str
-from jutils.helpers import divisible_by
-from jutils.helpers import is_odd
+# keep subpackages/modules importable as attributes for discoverability
+from . import vision as vision
+from . import colors as colors
+from . import helpers as helpers
+from . import instantiate as instantiate
+from . import log as log
+from . import plot_utils as plot_utils
+from . import timing as timing
+from . import torchy as torchy
 
-# colors
-from jutils.colors import Colors
-from jutils.colors import JCOLORS
-from jutils.colors import hex_to_rgb
-from jutils.colors import interpolate_color_list
-from jutils.colors import interpolate_colors
-from jutils.colors import visualize_color_list
-from jutils.colors import get_n_colors_from_cmap
+# re-export curated symbols from each leaf module
+from .vision import *
+from .vision import __all__ as _vision_all
 
-# plotting / rcparams
-from jutils.rcparams import RCPARAMS
-from jutils.rcparams import ALL_RCPARAMS
-from jutils.rcparams import set_rcparams
+from .colors import *
+from .colors import __all__ as _colors_all
 
-# instantiate
-from jutils.instantiate import get_obj_from_str
-from jutils.instantiate import instantiate_from_config
-from jutils.instantiate import load_partial_from_config
+from .helpers import *
+from .helpers import __all__ as _helpers_all
 
-# logging
-from jutils.log import get_logger
+from .instantiate import *
+from .instantiate import __all__ as _instantiate_all
 
-# time functions
-from jutils.timing import timer, get_time, Timer, format_time
+from .log import *
+from .log import __all__ as _log_all
 
-# torch-related functions
-from jutils.torchy import freeze
-from jutils.torchy import get_tensor_size
-from jutils.torchy import count_parameters
-from jutils.torchy import get_grad_norm
+from .plot_utils import *
+from .plot_utils import __all__ as _plot_all
 
-# models
-# ... can only be imported via jutils.nn.<module>
+from .timing import *
+from .timing import __all__ as _timing_all
 
-# pytorch distributed training
-# ... can only be imported via jutils.distributed
+from .torchy import *
+from .torchy import __all__ as _torchy_all
+
+# Union of all public names (include submodules if you want `from jutils import colors`)
+__all__ = [
+    "vision", "colors", "helpers", "instantiate", "log", "plot_utils", "timing", "torchy",
+    *_vision_all, *_colors_all, *_helpers_all, *_instantiate_all, *_log_all, *_plot_all, *_timing_all, *_torchy_all,
+    # only attribute submodules
+    "nn",
+]
+
+# Optional: detect accidental duplicate exports early
+_dups = [n for n in __all__[8:] if __all__[8:].count(n) > 1]
+if _dups:
+    raise RuntimeError(f"Duplicate exports in jutils: {sorted(set(_dups))}")

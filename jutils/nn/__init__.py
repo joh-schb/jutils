@@ -1,14 +1,30 @@
-from jutils.nn.ema import update_ema
+# jutils/nn/__init__.py
 
-from jutils.nn.attention import Attention
-from jutils.nn.attention import QKVAttention
-from jutils.nn.kl_autoencoder import AutoencoderKL
-from jutils.nn.kl_autoencoder import LATENT_SCALE
-from jutils.nn.kl_autoencoder import DiagonalGaussianDistribution
-from jutils.nn.tiny_autoencoder import TinyAutoencoderKL
+# Keep submodules importable as attributes
+from . import attention as attention
+from . import ema as ema
+from . import kl_autoencoder as kl_autoencoder
+from . import lr_schedulers as lr_schedulers
+from . import tiny_autoencoder as tiny_autoencoder
 
-# lr schedulers
-from jutils.nn.lr_schedulers import get_constant_schedule_with_warmup
-from jutils.nn.lr_schedulers import get_cosine_schedule_with_warmup
-from jutils.nn.lr_schedulers import get_iter_exponential_schedule
-from jutils.nn.lr_schedulers import get_exponential_decay_schedule
+# Re-export curated symbols from each leaf
+from .attention import *
+from .attention import __all__ as _att_all
+
+from .ema import *
+from .ema import __all__ as _ema_all
+
+from .kl_autoencoder import *
+from .kl_autoencoder import __all__ as _kl_all
+
+from .lr_schedulers import *
+from .lr_schedulers import __all__ as _lr_all
+
+from .tiny_autoencoder import *
+from .tiny_autoencoder import __all__ as _tae_all
+
+# Build the subpackage public surface
+__all__ = [
+    "attention", "ema", "kl_autoencoder", "lr_schedulers", "tiny_autoencoder",
+    *_att_all, *_ema_all, *_kl_all, *_lr_all, *_tae_all,
+]
