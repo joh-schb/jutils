@@ -1,3 +1,7 @@
+# jutils/__init__.py
+
+__version__ = "1.0"
+
 # subpackages only importable as attributes
 from . import nn as nn
 
