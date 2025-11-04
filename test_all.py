@@ -99,6 +99,33 @@ def test_torchy():
     print("count_parameters(model):", count_parameters(my_model))
 
 
+def test_transformer():
+    import torch
+    from jutils.nn import TransformerLayer
+    transformer = TransformerLayer(768, d_cond_norm=128, d_cross=64)
+    kwargs = dict(
+        x=torch.randn((1, 256, 768)),
+        pos=torch.randn((1, 256, 2)),
+        cond_norm=torch.randn((1, 1, 128)),
+        x_cross=torch.randn((1, 256, 64)),
+    )
+    out = transformer(**kwargs)
+    print(f"TransformerLayer: in.shape={kwargs['x'].shape} - out.shape={out.shape}")
+
+
+def test_rope():
+    import torch
+    from jutils.nn.rope import make_axial_pos_1d, make_axial_pos_2d, make_axial_pos_3d
+
+    f, h, w = 10, 4, 5
+    pos_1d = make_axial_pos_1d(f)
+    print(f"make_axial_pos_1d({f}):", pos_1d.shape)
+    pos_2d = make_axial_pos_2d(h, w)
+    print(f"make_axial_pos_2d({h}, {w}):", pos_2d.shape)
+    pos_3d = make_axial_pos_3d(f, h, w)
+    print(f"make_axial_pos_3d({f}, {h}, {w}):", pos_3d.shape)
+
+
 def test_all_files():
     import glob
     import subprocess
@@ -126,4 +153,6 @@ if __name__ == "__main__":
     # test_log()
     # test_timing()
     # test_torchy()
+    # test_transformer()
+    # test_rope()
     test_all_files()

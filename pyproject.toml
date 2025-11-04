@@ -18,6 +18,7 @@ dependencies = [
     "ipython",
     "termcolor",
     "matplotlib",
+    "jaxtyping",
 ]
 classifiers = [
   "Intended Audience :: Developers",
