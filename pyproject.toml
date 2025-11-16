@@ -32,6 +32,9 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/joh-schb/jutils"
 
+[tool.setuptools.package-data]
+jutils = ["fonts/**/*.ttf"]
+
 [tool.setuptools.dynamic]
 version = { attr = "jutils.__version__" }
 

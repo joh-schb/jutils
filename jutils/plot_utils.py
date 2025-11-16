@@ -1,5 +1,8 @@
 import numpy as np
+from pathlib import Path
+from importlib import resources
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 
 __all__ = [
     "RCPARAMS",
@@ -9,6 +12,8 @@ __all__ = [
     "latex_pt_to_inch",
     "inch_to_latex_pt",
     "make_row_of_axes",
+    "register_google_fonts",
+    "set_font_family",
 ]
 # ===============================================================================================
 
@@ -174,6 +179,63 @@ def make_row_of_axes(
     axes = [fig.add_subplot(gs[0, 2*i]) for i in range(n)]
 
     return fig, axes
+
+
+# ===================================================================================================
+
+
+def _iter_ttf_files(package_subdir: str):
+    """
+    Yield all .ttf files under a given importlib.resources package subdir.
+
+    Works on older Python versions where Traversable does not implement .rglob().
+    """
+    base = resources.files(package_subdir)
+
+    def _walk(trav):
+        for child in trav.iterdir():
+            if child.is_file() and child.name.lower().endswith(".ttf"):
+                yield child
+            elif child.is_dir():
+                yield from _walk(child)
+
+    yield from _walk(base)
+
+
+def _register_all_ttf_under(package_subdir: str):
+    """
+    Register all .ttf fonts under a given package subdirectory.
+    package_subdir is something like "jutils.fonts.Fira_Sans".
+    """
+    registered = set()
+
+    for ttf_path in _iter_ttf_files(package_subdir):
+        ttf_path = Path(ttf_path)
+        fm.fontManager.addfont(str(ttf_path))
+        props = fm.FontProperties(fname=str(ttf_path))
+        registered.add(props.get_name())
+
+    return registered
+
+
+def register_google_fonts():
+    """
+    Register all TTFs from jutils/fonts/Fira_Sans and jutils/fonts/Montserrat.
+
+    Returns a set of all discovered font family names.
+    """
+    families = set()
+    families |= _register_all_ttf_under("jutils.fonts.Fira_Sans")
+    families |= _register_all_ttf_under("jutils.fonts.Montserrat")
+    families |= _register_all_ttf_under("jutils.fonts.Quicksand")
+    return families
+
+
+def set_font_family(family: str):
+    """
+    Set the Matplotlib default font family to the given name, e.g. "Fira Sans".
+    """
+    plt.rcParams["font.family"] = family
 
 
 if __name__ == "__main__":
