@@ -285,9 +285,12 @@ class AttentionBlock(nn.Module):
             self.norm = RMSNorm(d_model)
         self.qkv_proj = nn.Linear(d_model, d_model * 3, bias=False)
         self.scale = nn.Parameter(torch.full([self.n_heads], 10.0))
-        self.pos_emb = locate(rope_cls)(d_head, self.n_heads, relative_canvas=True, learnable_freqs=False)
         self.dropout = nn.Dropout(dropout)
         self.out_proj = zero_init(nn.Linear(d_model, d_model, bias=False))
+
+        self.pos_emb = None
+        if rope_cls is not None:
+            self.pos_emb = locate(rope_cls)(d_head, self.n_heads, relative_canvas=True, learnable_freqs=False)
 
     def forward(self, x, pos, cond_norm=None):
         skip = x
@@ -298,14 +301,15 @@ class AttentionBlock(nn.Module):
             x = self.norm(x)
 
         qkv = self.qkv_proj(x)
-        pos = pos.to(qkv.dtype)
-        theta = self.pos_emb(pos)
-
         q, k, v = rearrange(qkv, "n l (t nh e) -> t n nh l e", t=3, e=self.d_head)
         q, k = scale_for_cosine_sim(q, k, self.scale[:, None, None], 1e-6)
-        theta = theta.movedim(-2, -3)
-        q = self.pos_emb.apply_emb(q, theta)
-        k = self.pos_emb.apply_emb(k, theta)
+
+        if self.pos_emb is not None:
+            pos = pos.to(qkv.dtype)
+            theta = self.pos_emb(pos)
+            theta = theta.movedim(-2, -3)
+            q = self.pos_emb.apply_emb(q, theta)
+            k = self.pos_emb.apply_emb(k, theta)
 
         x = F.scaled_dot_product_attention(q, k, v, scale=1.0)
         x = rearrange(x, "n nh l e -> n l (nh e)")
@@ -378,9 +382,12 @@ class CrossAttentionBlock(nn.Module):
         self.q_proj = nn.Linear(d_model, d_model, bias=False)
         self.kv_proj = nn.Linear(d_cross, d_model * 2, bias=False)
         self.scale = nn.Parameter(torch.full([self.n_heads], 10.0))
-        self.pos_emb = locate(rope_cls)(d_head, self.n_heads, relative_canvas=True, learnable_freqs=False)
         self.dropout = nn.Dropout(dropout)
         self.out_proj = zero_init(nn.Linear(d_model, d_model, bias=False))
+
+        self.pos_emb = None
+        if rope_cls is not None:
+            self.pos_emb = locate(rope_cls)(d_head, self.n_heads, relative_canvas=True, learnable_freqs=False)
 
     def forward(
         self,
@@ -398,14 +405,16 @@ class CrossAttentionBlock(nn.Module):
         q = self.q_proj(x)
         kv = self.kv_proj(x_cross)
 
-        pos = pos.to(q.dtype)
-        theta = self.pos_emb(pos)
-
         q = rearrange(q, "n l (nh e) -> n nh l e", e=self.d_head)
         k, v = rearrange(kv, "n l (t nh e) -> t n nh l e", t=2, e=self.d_head)
         q, k = scale_for_cosine_sim(q, k, self.scale[:, None, None], 1e-6)
-        theta = theta.movedim(-2, -3)
-        q = self.pos_emb.apply_emb(q, theta)
+
+        if self.pos_emb is not None:
+            pos = pos.to(q.dtype)
+            theta = self.pos_emb(pos)
+            theta = theta.movedim(-2, -3)
+            q = self.pos_emb.apply_emb(q, theta)
+        
         x = F.scaled_dot_product_attention(q, k, v, scale=1.0)
         x = rearrange(x, "n nh l e -> n l (nh e)")
 
