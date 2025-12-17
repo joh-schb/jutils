@@ -8,6 +8,7 @@ __all__ = [
     "count_parameters",
     "freeze",
     "get_grad_norm",
+    "materialize_block_mask",
 ]
 # ===============================================================================================
 
@@ -42,6 +43,27 @@ def get_grad_norm(model: nn.Module):
         total_norm += param_norm.item() ** 2
     total_norm = total_norm ** 0.5
     return total_norm
+
+
+def materialize_block_mask(block_mask, b=0, h=0, device="cpu"):
+    """
+    Materialize a FlexAttention BlockMask into a dense boolean tensor.
+    """
+    Q_LEN = block_mask.shape[-2]
+    KV_LEN = block_mask.shape[-1]
+
+    mask = torch.zeros((Q_LEN, KV_LEN), dtype=torch.bool, device=device)
+    mask_mod = block_mask.mask_mod
+    for q in range(Q_LEN):
+        for k in range(KV_LEN):
+            mask[q, k] = mask_mod(
+                b=b,
+                h=h,
+                q_idx=q,
+                kv_idx=k,
+            )
+
+    return mask
 
 
 if __name__ == "__main__":

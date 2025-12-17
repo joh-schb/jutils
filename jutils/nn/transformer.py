@@ -475,8 +475,9 @@ class TransformerLayer(nn.Module):
         pos: Float[torch.Tensor, "b n d"],
         cond_norm: Float[torch.Tensor, "b 1|n e"] = None,
         x_cross: Float[torch.Tensor, "b m k"] = None,
+        block_mask = None,
     ):
-        x = self.self_attn(x, pos, cond_norm=cond_norm)
+        x = self.self_attn(x, pos, cond_norm=cond_norm, block_mask=block_mask)
         if self.cross_attn is not None:
             x = self.cross_attn(x, pos, x_cross=x_cross, cond_norm=cond_norm)
         x = self.ff(x, cond_norm=cond_norm)
