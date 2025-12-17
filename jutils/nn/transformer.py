@@ -7,6 +7,7 @@ from functools import reduce
 from einops import rearrange
 from functools import partial
 import torch.nn.functional as F
+from torch.nn.attention.flex_attention import flex_attention
 
 
 __all__ = [
@@ -293,7 +294,7 @@ class AttentionBlock(nn.Module):
         if rope_cls is not None:
             self.pos_emb = locate(rope_cls)(d_head, self.n_heads, relative_canvas=True, learnable_freqs=False)
 
-    def forward(self, x, pos, cond_norm=None):
+    def forward(self, x, pos, cond_norm=None, block_mask=None):
         skip = x
 
         if cond_norm is not None:
@@ -312,7 +313,10 @@ class AttentionBlock(nn.Module):
             q = self.pos_emb.apply_emb(q, theta)
             k = self.pos_emb.apply_emb(k, theta)
 
-        x = F.scaled_dot_product_attention(q, k, v, scale=1.0)
+        if block_mask is None:
+            x = F.scaled_dot_product_attention(q, k, v, scale=1.0)
+        else:
+            x = flex_attention(q, k, v, scale=1.0, block_mask=block_mask)
         x = rearrange(x, "n nh l e -> n l (nh e)")
 
         x = self.dropout(x)
