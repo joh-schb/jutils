@@ -1,6 +1,6 @@
 # jutils/__init__.py
 
-__version__ = "1.0.5"
+__version__ = "1.0.6"
 
 # subpackages only importable as attributes
 from . import nn as nn
@@ -42,8 +42,22 @@ from .torchy import __all__ as _torchy_all
 
 # Union of all public names (include submodules if you want `from jutils import colors`)
 __all__ = [
-    "vision", "colors", "helpers", "instantiate", "log", "plot_utils", "timing", "torchy",
-    *_vision_all, *_colors_all, *_helpers_all, *_instantiate_all, *_log_all, *_plot_all, *_timing_all, *_torchy_all,
+    "vision",
+    "colors",
+    "helpers",
+    "instantiate",
+    "log",
+    "plot_utils",
+    "timing",
+    "torchy",
+    *_vision_all,
+    *_colors_all,
+    *_helpers_all,
+    *_instantiate_all,
+    *_log_all,
+    *_plot_all,
+    *_timing_all,
+    *_torchy_all,
     # only attribute submodules
     "nn",
 ]
