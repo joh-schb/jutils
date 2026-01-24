@@ -8,6 +8,7 @@ from . import lr_schedulers as lr_schedulers
 from . import tiny_autoencoder as tiny_autoencoder
 from . import rope as rope
 from . import transformer as transformer
+from . import ae_flux2 as ae_flux2
 
 # Re-export curated symbols from each leaf
 from .attention import *
@@ -31,8 +32,11 @@ from .rope import __all__ as _rope_all
 from .transformer import *
 from .transformer import __all__ as _trans_all
 
+from .ae_flux2 import *
+from .ae_flux2 import __all__ as _ae_flux2_all
+
 # Build the subpackage public surface
 __all__ = [
-    "attention", "ema", "kl_autoencoder", "lr_schedulers", "tiny_autoencoder",
-    *_att_all, *_ema_all, *_kl_all, *_lr_all, *_tae_all, *_rope_all, *_trans_all
+    "attention", "ema", "kl_autoencoder", "lr_schedulers", "tiny_autoencoder", "ae_flux2",
+    *_att_all, *_ema_all, *_kl_all, *_lr_all, *_tae_all, *_rope_all, *_trans_all, *_ae_flux2_all
 ]
