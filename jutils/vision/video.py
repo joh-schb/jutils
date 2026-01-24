@@ -35,7 +35,7 @@ def vid2tensor(video, normalize_zero_one=False):
     return video
 
 
-def tensor2vid(tensor, denormalize_zero_one=False):
+def tensor2vid(tensor, denormalize_zero_one=False, channel_last=False):
     """
     Args:
         tensor: Tensor of shape (B, C, T, H, W) or (C, T, H, W), with values in [-1, 1] or [0, 1]
@@ -44,6 +44,8 @@ def tensor2vid(tensor, denormalize_zero_one=False):
         Numpy array of shape (B, T, H, W, C) or (T, H, W, C) in range [0, 255], uint8.
     """
     assert len(tensor.shape) in {4, 5}, f"Expected shape (B, C, T, H, W) or (C, T, H, W), got {tensor.shape}"
+    if channel_last:
+        tensor = einops.rearrange(tensor, '... t h w c -> ... c t h w')
     if len(tensor.shape) == 5 and tensor.shape[0] == 1:
         tensor = tensor[0]
     if isinstance(tensor, torch.Tensor):
