@@ -16,7 +16,7 @@ __all__ = [
     "TokenMerge2D", "TokenSplitLast2D", "TokenMerge3D", "TokenSplitLast3D",
     "FourierFeatures", "TimestepEmbedder",
     "MappingFeedForwardBlock", "MappingNetwork", "FeedForwardBlock",
-    "scale_for_cosine_sim", "AttentionBlock", "DimensionAttentionBlock", "CrossAttentionBlock", "TransformerLayer",
+    "scale_for_cosine_sim", "AttentionBlock", "DimensionAttentionBlock", "CrossAttentionBlock", "DimensionCrossAttentionBlock", "TransformerLayer", "TransformerLayerWithDimensions",
     "RegisterAttentionBlock", "RegisterCrossAttentionBlock", "TransformerLayerWithRegisters",
 ]
 # ===================================================================================================
@@ -124,6 +124,7 @@ class TokenSplitLast2D(nn.Module):
 
     def forward(self, x, cond_norm=None):
         if cond_norm is not None:
+            assert x.ndim == cond_norm.ndim, f"expected cond_norm to have same ndim as x: {x.shape} vs {cond_norm.shape}"
             x = self.norm(x, cond_norm)
         else:
             x = self.norm(x)
@@ -328,45 +329,6 @@ class AttentionBlock(nn.Module):
         x = self.dropout(x)
         x = self.out_proj(x)
         return x + skip
-    
-
-class DimensionAttentionBlock(AttentionBlock):
-    """
-    Expects (b, ..., dim), reshapes in forward, and applies attention over all '...' dimensions.
-    This allows you to apply AdaRMSNorm only to specific dimensions.
-    """
-    def forward(
-        self,
-        x: Float[torch.Tensor, 'b ... c'],
-        pos: Float[torch.Tensor, 'b ... d'],
-        cond_norm: Float[torch.Tensor, 'b ... e'] = None,
-    ):
-        skip = x
-        if cond_norm is not None:
-            x = self.norm(x, cond_norm)
-        else:
-            x = self.norm(x)
-
-        B, *DIMS, C = x.shape
-        qkv = self.qkv_proj(x)
-        x = rearrange(x, "b ... c -> b (...) c")
-        pos = rearrange(pos, "b ... c -> b (...) c")
-        qkv = rearrange(qkv, "b ... c -> b (...) c")
-        pos = pos.to(qkv.dtype)
-        theta = self.pos_emb(pos)
-
-        q, k, v = rearrange(qkv, "n l (t nh e) -> t n nh l e", t=3, e=self.d_head)
-        q, k = scale_for_cosine_sim(q, k, self.scale[:, None, None], 1e-6)
-        theta = theta.movedim(-2, -3)
-        q = self.pos_emb.apply_emb(q, theta)
-        k = self.pos_emb.apply_emb(k, theta)
-        x = F.scaled_dot_product_attention(q, k, v, scale=1.0)
-        x = rearrange(x, "n nh l e -> n l (nh e)")
-
-        x = self.dropout(x)
-        x = self.out_proj(x)
-        x = x.view(B, *DIMS, C)
-        return x + skip
 
 
 class CrossAttentionBlock(nn.Module):
@@ -482,6 +444,152 @@ class TransformerLayer(nn.Module):
         cond_norm: Float[torch.Tensor, "b 1|n e"] = None,
         x_cross: Float[torch.Tensor, "b m k"] = None,
         block_mask = None,
+    ):
+        x = self.self_attn(x, pos, cond_norm=cond_norm, block_mask=block_mask)
+        if self.cross_attn is not None:
+            x = self.cross_attn(x, pos, x_cross=x_cross, cond_norm=cond_norm)
+        x = self.ff(x, cond_norm=cond_norm)
+        return x
+
+
+# ===================================================================================================
+# Attention with full dimensions
+
+
+class DimensionAttentionBlock(AttentionBlock):
+    """
+    Expects (b, ..., dim), reshapes in forward, and applies attention over all '...' dimensions.
+    This allows you to apply AdaRMSNorm only to specific dimensions.
+    """
+    def forward(
+        self,
+        x: Float[torch.Tensor, 'b ... c'],
+        pos: Float[torch.Tensor, 'b ... d'],
+        cond_norm: Float[torch.Tensor, 'b ... e'] = None,
+        block_mask=None,
+    ):
+        skip = x
+
+        if cond_norm is not None:
+            x = self.norm(x, cond_norm)
+        else:
+            x = self.norm(x)
+
+        B, *DIMS, _ = x.shape
+        x = rearrange(x, "b ... d -> b (...) d")
+        qkv = self.qkv_proj(x)
+        q, k, v = rearrange(qkv, "n l (t nh e) -> t n nh l e", t=3, e=self.d_head)
+        q, k = scale_for_cosine_sim(q, k, self.scale[:, None, None], 1e-6)
+
+        if self.pos_emb is not None:
+            pos = rearrange(pos.to(qkv.dtype), "b ... d -> b (...) d")
+            theta = self.pos_emb(pos)
+            theta = theta.movedim(-2, -3)
+            q = self.pos_emb.apply_emb(q, theta)
+            k = self.pos_emb.apply_emb(k, theta)
+
+        if block_mask is None:
+            x = F.scaled_dot_product_attention(q, k, v, scale=1.0)
+        else:
+            x = flex_attention(q, k, v, scale=1.0, block_mask=block_mask)
+        x = rearrange(x, "n nh l e -> n l (nh e)")
+
+        x = self.dropout(x)
+        x = self.out_proj(x)
+        return x.view(B, *DIMS, x.size(-1)) + skip
+
+
+class DimensionCrossAttentionBlock(CrossAttentionBlock):
+    """
+    Expects (b, ..., dim), reshapes in forward, and applies attention over all '...' dimensions.
+    This allows you to apply AdaRMSNorm only to specific dimensions.
+    """
+    def forward(
+        self,
+        x: Float[torch.Tensor, 'b ... c'],
+        pos: Float[torch.Tensor, 'b ... d'],
+        x_cross: Float[torch.Tensor, 'b ... k'],
+        cond_norm: Float[torch.Tensor, 'b ... e'] = None,
+    ):
+        skip = x
+        if cond_norm is not None:
+            x = self.norm(x, cond_norm)
+        else:
+            x = self.norm(x)
+        x_cross = self.norm_cross(x_cross)
+
+        B, *DIMS, _ = x.shape
+        x = rearrange(x, "b ... d -> b (...) d")
+        x_cross = rearrange(x_cross, "b ... d -> b (...) d")
+        q = self.q_proj(x)
+        kv = self.kv_proj(x_cross)
+
+        q = rearrange(q, "n l (nh e) -> n nh l e", e=self.d_head)
+        k, v = rearrange(kv, "n l (t nh e) -> t n nh l e", t=2, e=self.d_head)
+        q, k = scale_for_cosine_sim(q, k, self.scale[:, None, None], 1e-6)
+
+        if self.pos_emb is not None:
+            pos = rearrange(pos.to(q.dtype), "b ... d -> b (...) d")
+            theta = self.pos_emb(pos)
+            theta = theta.movedim(-2, -3)
+            q = self.pos_emb.apply_emb(q, theta)
+        
+        x = F.scaled_dot_product_attention(q, k, v, scale=1.0)
+        x = rearrange(x, "n nh l e -> n l (nh e)")
+
+        x = self.dropout(x)
+        x = self.out_proj(x)
+        return x.view(B, *DIMS, x.size(-1)) + skip
+
+
+class TransformerLayerWithDimensions(nn.Module):
+    def __init__(
+        self,
+        d_model,
+        d_cross=None,
+        d_head=64,
+        d_cond_norm=None,
+        dropout=0.0,
+        ff_expand=3,
+        rope_cls='jutils.nn.rope.AxialRoPE2D',
+        compile: bool = False,
+    ):
+        super().__init__()
+        global COMPILE
+        COMPILE = compile
+
+        d_ff = d_model * ff_expand
+
+        self.self_attn = DimensionAttentionBlock(
+            d_model=d_model,
+            d_head=d_head,
+            d_cond_norm=d_cond_norm,
+            dropout=dropout,
+            rope_cls=rope_cls,
+        )
+
+        self.cross_attn = None
+        if d_cross is not None:
+            self.cross_attn = DimensionCrossAttentionBlock(
+                d_model=d_model,
+                d_cross=d_cross,
+                d_head=d_head,
+                d_cond_norm=d_cond_norm,
+                dropout=dropout,
+                rope_cls=rope_cls,
+            )
+
+        self.ff = FeedForwardBlock(d_model, d_ff, d_cond_norm, dropout)
+
+        if COMPILE: self.forward = compile_fn(self.forward)
+
+    def forward(
+        self,
+        x: Float[torch.Tensor, "b ... c"],
+        pos: Float[torch.Tensor, "b ... d"],
+        cond_norm: Float[torch.Tensor, "b ... e"] = None,
+        x_cross: Float[torch.Tensor, "b ... k"] = None,
+        block_mask=None,
     ):
         x = self.self_attn(x, pos, cond_norm=cond_norm, block_mask=block_mask)
         if self.cross_attn is not None:
