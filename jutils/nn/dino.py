@@ -9,6 +9,7 @@ import torch.nn.functional as F
 
 __all__ = [
     "DINOv2",
+    "DinoVisionTransformer",
     "preprocess_for_dinov2",
     "vit_small",
     "vit_base",
