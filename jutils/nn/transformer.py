@@ -110,17 +110,23 @@ class TokenMerge2D(nn.Module):
 
 
 class TokenSplitLast2D(nn.Module):
-    def __init__(self, in_features, out_features, patch_size=(2, 2), zero_init: bool = True):
+    def __init__(self, in_features, out_features, patch_size=(2, 2), d_cond_norm=None, zero_init: bool = True):
         super().__init__()
         if isinstance(patch_size, int): patch_size = (patch_size, patch_size)
         self.ph = patch_size[0]
         self.pw = patch_size[1]
-        self.norm = RMSNorm(in_features)
+        if d_cond_norm is not None:
+            self.norm = AdaRMSNorm(in_features, d_cond_norm)
+        else:
+            self.norm = RMSNorm(in_features)
         self.proj = nn.Linear(in_features, out_features * self.ph * self.pw, bias=False)
         if zero_init: nn.init.zeros_(self.proj.weight)
 
-    def forward(self, x):
-        x = self.norm(x)
+    def forward(self, x, cond_norm=None):
+        if cond_norm is not None:
+            x = self.norm(x, cond_norm)
+        else:
+            x = self.norm(x)
         x = self.proj(x)
         x = rearrange(x, "... h w (ph pw c) -> ... (h ph) (w pw) c", ph=self.ph, pw=self.pw)
         return x
