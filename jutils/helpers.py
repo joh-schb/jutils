@@ -110,16 +110,17 @@ def pad_v_like_x(v_, x_):
 
 
 class NullObject:
-    """ just do nothing """
+    """just do nothing"""
+
     def __getattr__(self, name) -> "NullObject":
         return NullObject()
 
     def __call__(self, *args: Any, **kwds: Any) -> "NullObject":
         return NullObject()
-    
+
     def __enter__(self) -> "NullObject":
         return self
-    
+
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         pass
 
@@ -140,10 +141,12 @@ if __name__ == "__main__":
 
     # pad_vector_like_x(v_, x_)
     import torch
+
     print("pad_vector_like_x(v_, x_):", pad_v_like_x(torch.randn(10), torch.randn(10, 3, 224, 224)).shape)
     import numpy as np
+
     print("pad_vector_like_x(v_, x_):", pad_v_like_x(np.random.randn(10), np.random.randn(10, 3, 224, 224)).shape)
 
     # NullObject
     null = NullObject()
-    print("NullObject():", null('a', 123))
+    print("NullObject():", null("a", 123))

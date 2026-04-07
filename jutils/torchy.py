@@ -26,7 +26,7 @@ def count_parameters(model: nn.Module, return_int: bool = False):
     if return_int:
         return n_params
 
-    return f'{n_params:,}'
+    return f"{n_params:,}"
 
 
 def freeze(model: nn.Module) -> nn.Module:
@@ -41,7 +41,7 @@ def get_grad_norm(model: nn.Module):
     for p in parameters:
         param_norm = p.grad.detach().data.norm(2)
         total_norm += param_norm.item() ** 2
-    total_norm = total_norm ** 0.5
+    total_norm = total_norm**0.5
     return total_norm
 
 

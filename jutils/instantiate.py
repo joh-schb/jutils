@@ -25,7 +25,7 @@ def instantiate_from_config(config):
 
 
 def load_partial_from_config(config):
-    return partial(get_obj_from_str(config['target']), **config.get('params', dict()))
+    return partial(get_obj_from_str(config["target"]), **config.get("params", dict()))
 
 
 if __name__ == "__main__":

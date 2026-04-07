@@ -1,6 +1,7 @@
-""" Adapted from
+"""Adapted from
 https://github.com/huggingface/transformers/blob/v4.45.1/src/transformers/optimization.py
 """
+
 import math
 import torch
 import numpy as np
@@ -32,11 +33,12 @@ def get_constant_schedule_with_warmup(optimizer: Optimizer, num_warmup_steps: in
     Return:
         `torch.optim.lr_scheduler.LambdaLR` with the appropriate schedule.
     """
+
     def lr_lambda(current_step: int):
         if current_step < num_warmup_steps:
             return float(current_step) / float(max(1.0, num_warmup_steps))
         return 1.0
-    
+
     return LambdaLR(optimizer, lr_lambda, last_epoch=last_epoch)
 
 
@@ -64,16 +66,19 @@ def get_cosine_schedule_with_warmup(
     Return:
         `torch.optim.lr_scheduler.LambdaLR` with the appropriate schedule.
     """
+
     def lr_lambda(current_step: int):
         if current_step < num_warmup_steps:
             return float(current_step) / float(max(1, num_warmup_steps))
         progress = float(current_step - num_warmup_steps) / float(max(1, num_training_steps - num_warmup_steps))
         return max(0.0, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress)))
-    
+
     return LambdaLR(optimizer, lr_lambda, last_epoch)
 
 
-def get_iter_exponential_schedule(optimizer: Optimizer, num_warmup_steps: int, num_training_steps: int, final_ratio: float):
+def get_iter_exponential_schedule(
+    optimizer: Optimizer, num_warmup_steps: int, num_training_steps: int, final_ratio: float
+):
     """
     Iteration-wise exponential scheduler.
 
@@ -82,6 +87,7 @@ def get_iter_exponential_schedule(optimizer: Optimizer, num_warmup_steps: int, n
         num_training_steps (int): Total number of training steps
         final_ratio (float): Expected LR ratio at n_iter = num_training_steps
     """
+
     def lr_lambda(current_step: int):
         if current_step < num_warmup_steps:
             return float(current_step) / float(max(1.0, num_warmup_steps))
@@ -89,11 +95,9 @@ def get_iter_exponential_schedule(optimizer: Optimizer, num_warmup_steps: int, n
             return final_ratio
         else:
             actual_iter = current_step - num_warmup_steps
-            alpha = np.exp(
-                actual_iter / (num_training_steps - num_warmup_steps) * np.log(final_ratio)
-            )
+            alpha = np.exp(actual_iter / (num_training_steps - num_warmup_steps) * np.log(final_ratio))
             return alpha
-    
+
     return LambdaLR(optimizer, lr_lambda)
 
 
@@ -104,11 +108,12 @@ def get_exponential_decay_schedule(optimizer: Optimizer, num_warmup_steps: int, 
     Training Strategies' - Hu et al. (2024)
 
     Max steps in WSD annealing phase: 3 * t_decay
-    
+
     Args:
         num_warmup_steps (int): Number of warmup steps
         t_decay (int): Step at which the learning rate is halved (set to ~2% of the training steps)
     """
+
     def lr_lambda(current_step: int):
         if current_step < num_warmup_steps:
             return float(current_step) / float(max(1.0, num_warmup_steps))
@@ -124,7 +129,7 @@ if __name__ == "__main__":
 
     def get_lr(optimizer):
         for param_group in optimizer.param_groups:
-            return param_group['lr']
+            return param_group["lr"]
 
     base_lr = 1e-4
     warmup_steps = 1000
@@ -133,8 +138,10 @@ if __name__ == "__main__":
     schedules = {
         get_constant_schedule_with_warmup: dict(num_warmup_steps=warmup_steps),
         get_cosine_schedule_with_warmup: dict(num_warmup_steps=warmup_steps, num_training_steps=training_steps),
-        get_iter_exponential_schedule: dict(num_warmup_steps=warmup_steps, num_training_steps=training_steps, final_ratio=0.01),
-        get_exponential_decay_schedule: dict(num_warmup_steps=warmup_steps, t_decay=1000)
+        get_iter_exponential_schedule: dict(
+            num_warmup_steps=warmup_steps, num_training_steps=training_steps, final_ratio=0.01
+        ),
+        get_exponential_decay_schedule: dict(num_warmup_steps=warmup_steps, t_decay=1000),
     }
 
     fig = plt.figure(figsize=(10, 6))
@@ -145,8 +152,8 @@ if __name__ == "__main__":
         for i in tqdm(range(training_steps)):
             scheduler.step()
             lrs.append(get_lr(opt))
-        kwargs_str = ', '.join([f"{k}={v}" for k, v in kwargs.items()])
+        kwargs_str = ", ".join([f"{k}={v}" for k, v in kwargs.items()])
         lbl = f"{schedule.__name__}({kwargs_str})"
         plt.plot(lrs, label=lbl)
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=1)
-    fig.savefig('_lr-schedulers.png', bbox_inches='tight')
+    plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.05), ncol=1)
+    fig.savefig("_lr-schedulers.png", bbox_inches="tight")

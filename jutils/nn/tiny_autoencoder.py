@@ -3,6 +3,7 @@ Adapted from https://github.com/madebyollin/taesd
 Tiny AutoEncoder for Stable Diffusion
 (DNN for encoding / decoding SD's latent space)
 """
+
 import torch
 import torch.nn as nn
 
@@ -26,27 +27,53 @@ class Block(nn.Module):
         self.conv = nn.Sequential(conv(n_in, n_out), nn.ReLU(), conv(n_out, n_out), nn.ReLU(), conv(n_out, n_out))
         self.skip = nn.Conv2d(n_in, n_out, 1, bias=False) if n_in != n_out else nn.Identity()
         self.fuse = nn.ReLU()
+
     def forward(self, x):
         return self.fuse(self.conv(x) + self.skip(x))
 
 
 def Encoder(latent_channels=4):
     return nn.Sequential(
-        conv(3, 64), Block(64, 64),
-        conv(64, 64, stride=2, bias=False), Block(64, 64), Block(64, 64), Block(64, 64),
-        conv(64, 64, stride=2, bias=False), Block(64, 64), Block(64, 64), Block(64, 64),
-        conv(64, 64, stride=2, bias=False), Block(64, 64), Block(64, 64), Block(64, 64),
+        conv(3, 64),
+        Block(64, 64),
+        conv(64, 64, stride=2, bias=False),
+        Block(64, 64),
+        Block(64, 64),
+        Block(64, 64),
+        conv(64, 64, stride=2, bias=False),
+        Block(64, 64),
+        Block(64, 64),
+        Block(64, 64),
+        conv(64, 64, stride=2, bias=False),
+        Block(64, 64),
+        Block(64, 64),
+        Block(64, 64),
         conv(64, latent_channels),
     )
 
 
 def Decoder(latent_channels=4):
     return nn.Sequential(
-        Clamp(), conv(latent_channels, 64), nn.ReLU(),
-        Block(64, 64), Block(64, 64), Block(64, 64), nn.Upsample(scale_factor=2), conv(64, 64, bias=False),
-        Block(64, 64), Block(64, 64), Block(64, 64), nn.Upsample(scale_factor=2), conv(64, 64, bias=False),
-        Block(64, 64), Block(64, 64), Block(64, 64), nn.Upsample(scale_factor=2), conv(64, 64, bias=False),
-        Block(64, 64), conv(64, 3),
+        Clamp(),
+        conv(latent_channels, 64),
+        nn.ReLU(),
+        Block(64, 64),
+        Block(64, 64),
+        Block(64, 64),
+        nn.Upsample(scale_factor=2),
+        conv(64, 64, bias=False),
+        Block(64, 64),
+        Block(64, 64),
+        Block(64, 64),
+        nn.Upsample(scale_factor=2),
+        conv(64, 64, bias=False),
+        Block(64, 64),
+        Block(64, 64),
+        Block(64, 64),
+        nn.Upsample(scale_factor=2),
+        conv(64, 64, bias=False),
+        Block(64, 64),
+        conv(64, 3),
     )
 
 
@@ -75,7 +102,7 @@ class TinyAutoencoderKL(nn.Module):
         # scale to [0, 1]
         x = x.div(2).add(0.5)
         return self.encoder(x)
-    
+
     @torch.no_grad()
     def decode(self, z):
         """

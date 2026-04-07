@@ -13,7 +13,4 @@ from .depth import __all__ as _depth_all
 
 
 # Build the subpackage's public surface
-__all__ = [
-    "image", "video", "depth",
-    *_image_all, *_video_all, *_depth_all
-]
+__all__ = ["image", "video", "depth", *_image_all, *_video_all, *_depth_all]

@@ -7,10 +7,16 @@ from abc import ABC, abstractmethod
 
 
 __all__ = [
-    "centers", "make_grid", "bounding_box", "AxialRoPEBase",
-    "AxialRoPE1D", "make_axial_pos_1d",
-    "AxialRoPE2D", "make_axial_pos_2d",
-    "AxialRoPE3D", "make_axial_pos_3d",
+    "centers",
+    "make_grid",
+    "bounding_box",
+    "AxialRoPEBase",
+    "AxialRoPE1D",
+    "make_axial_pos_1d",
+    "AxialRoPE2D",
+    "make_axial_pos_2d",
+    "AxialRoPE3D",
+    "make_axial_pos_3d",
 ]
 # ===============================================================================================
 
@@ -361,7 +367,7 @@ class AxialRoPE3D(AxialRoPEBase):
 
 
 def make_grid_3d(t_pos, h_pos, w_pos):
-    grid = torch.stack(torch.meshgrid(t_pos, h_pos, w_pos, indexing='ij'), dim=-1)
+    grid = torch.stack(torch.meshgrid(t_pos, h_pos, w_pos, indexing="ij"), dim=-1)
     t, h, w, d = grid.shape
     return grid.view(t * h * w, d)
 
@@ -371,7 +377,7 @@ def make_axial_pos_3d(t, h, w, pixel_aspect_ratio=1.0, align_corners=False, dtyp
         y_min, y_max, x_min, x_max = bounding_box(h, w, pixel_aspect_ratio)
     else:
         y_min, y_max, x_min, x_max = -h / 2, h / 2, -w / 2, w / 2
-    
+
     if align_corners:
         t_pos = torch.arange(t, dtype=dtype, device=device).float().to(dtype)
         h_pos = torch.linspace(y_min, y_max, h, dtype=dtype, device=device)

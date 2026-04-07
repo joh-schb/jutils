@@ -22,15 +22,15 @@ def pad_vector_like_x(v, x):
     """
     Function to reshape the vector by the number of dimensions    of x. E.g. x (bs, c, h, w), v (bs) -> v (bs, 1, 1, 1).
     Args:        x : Tensor, shape (bs, *dim)        v : FloatTensor, shape (bs)
-    Returns:        vec : Tensor, shape (bs, number of x dimensions)    """
+    Returns:        vec : Tensor, shape (bs, number of x dimensions)"""
     if isinstance(v, float):
         return v
     return v.reshape(-1, *([1] * (x.ndim - 1)))
 
 
 def per_sample_min_max_normalization(x):
-    """ Normalize each sample in a batch independently
-    with min-max normalization to [0, 1] """
+    """Normalize each sample in a batch independently
+    with min-max normalization to [0, 1]"""
     bs, *shape = x.shape
     x_ = einops.rearrange(x, "b ... -> b (...)")
     min_val = einops.reduce(x_, "b ... -> b", "min")[..., None]
@@ -40,14 +40,14 @@ def per_sample_min_max_normalization(x):
 
 
 def colorize_depth_map(
-        depth,
-        vmin=None,
-        vmax=None,
-        percentiles=False,
-        cmap="Spectral",
-        invalid_mask=None,
-        invalid_color=(0, 0, 0),
-        inverse=False
+    depth,
+    vmin=None,
+    vmax=None,
+    percentiles=False,
+    cmap="Spectral",
+    invalid_mask=None,
+    invalid_color=(0, 0, 0),
+    inverse=False,
 ):
     """
     Colorize a depth map using a matplotlib colormap.
@@ -100,7 +100,7 @@ def colorize_depth_map(
 
     # apply colormap
     cmapper = plt.get_cmap(cmap)
-    depth = cmapper(depth, bytes=True)[..., :3]         # (b, h, w, 3)
+    depth = cmapper(depth, bytes=True)[..., :3]  # (b, h, w, 3)
 
     if invalid_mask is not None:
         depth[invalid_mask] = invalid_color
@@ -110,16 +110,10 @@ def colorize_depth_map(
 
 if __name__ == "__main__":
     from PIL import Image
-    depthy = torch.arange(2*100*100).reshape(2, 1, 100, 100).float()
 
-    colorized = colorize_depth_map(
-        depthy,
-        vmin=2,
-        vmax=98,
-        percentiles=True,
-        cmap="Spectral",
-        inverse=False
-    )
+    depthy = torch.arange(2 * 100 * 100).reshape(2, 1, 100, 100).float()
+
+    colorized = colorize_depth_map(depthy, vmin=2, vmax=98, percentiles=True, cmap="Spectral", inverse=False)
     print("colorized.shape:", colorized.shape)
     print("colorized.min():", colorized.min())
     print("colorized.max():", colorized.max())

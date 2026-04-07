@@ -11,20 +11,41 @@ from torch.nn.attention.flex_attention import flex_attention
 
 
 __all__ = [
-    "zero_init", "LinearSwiGLU",
-    "rms_norm", "RMSNorm", "AdaRMSNorm",
-    "TokenMerge2D", "TokenSplitLast2D", "TokenMerge3D", "TokenSplitLast3D",
-    "FourierFeatures", "TimestepEmbedder",
-    "MappingFeedForwardBlock", "MappingNetwork", "FeedForwardBlock",
-    "scale_for_cosine_sim", "AttentionBlock", "DimensionAttentionBlock", "CrossAttentionBlock", "DimensionCrossAttentionBlock", "TransformerLayer", "TransformerLayerWithDimensions",
-    "RegisterAttentionBlock", "RegisterCrossAttentionBlock", "TransformerLayerWithRegisters",
+    "zero_init",
+    "LinearSwiGLU",
+    "rms_norm",
+    "RMSNorm",
+    "AdaRMSNorm",
+    "TokenMerge2D",
+    "TokenSplitLast2D",
+    "TokenMerge3D",
+    "TokenSplitLast3D",
+    "FourierFeatures",
+    "TimestepEmbedder",
+    "MappingFeedForwardBlock",
+    "MappingNetwork",
+    "FeedForwardBlock",
+    "scale_for_cosine_sim",
+    "AttentionBlock",
+    "DimensionAttentionBlock",
+    "CrossAttentionBlock",
+    "DimensionCrossAttentionBlock",
+    "TransformerLayer",
+    "TransformerLayerWithDimensions",
+    "RegisterAttentionBlock",
+    "RegisterCrossAttentionBlock",
+    "TransformerLayerWithRegisters",
 ]
 # ===================================================================================================
 
 
 COMPILE = False
 if torch.cuda.is_available():
-    compile_fn = partial(torch.compile, fullgraph=False, backend='inductor' if torch.cuda.get_device_capability()[0] >= 7 else 'aot_eager')
+    compile_fn = partial(
+        torch.compile,
+        fullgraph=False,
+        backend="inductor" if torch.cuda.get_device_capability()[0] >= 7 else "aot_eager",
+    )
 else:
     compile_fn = lambda f: f
 
@@ -83,11 +104,12 @@ class AdaRMSNorm(nn.Module):
 
     def forward(self, x, cond):
         proj_out = self.linear(cond)
-        if proj_out.ndim == 2:          # (bs, dim) -> (bs, 1, dim)
+        if proj_out.ndim == 2:  # (bs, dim) -> (bs, 1, dim)
             proj_out = proj_out[:, None, :]
         else:
-            assert proj_out.shape[1] == x.shape[1] or proj_out.shape[1] == 1, \
-                f"mismatch in AdaRMSNorm shape: x={x.shape} proj_out={cond.shape}"
+            assert (
+                proj_out.shape[1] == x.shape[1] or proj_out.shape[1] == 1
+            ), f"mismatch in AdaRMSNorm shape: x={x.shape} proj_out={cond.shape}"
         return rms_norm(x, proj_out + 1, self.eps)
 
 
@@ -98,7 +120,8 @@ class AdaRMSNorm(nn.Module):
 class TokenMerge2D(nn.Module):
     def __init__(self, in_features, out_features, patch_size=(2, 2)):
         super().__init__()
-        if isinstance(patch_size, int): patch_size = (patch_size, patch_size)
+        if isinstance(patch_size, int):
+            patch_size = (patch_size, patch_size)
         self.ph = patch_size[0]
         self.pw = patch_size[1]
         self.proj = nn.Linear(in_features * self.ph * self.pw, out_features, bias=False)
@@ -112,7 +135,8 @@ class TokenMerge2D(nn.Module):
 class TokenSplitLast2D(nn.Module):
     def __init__(self, in_features, out_features, patch_size=(2, 2), d_cond_norm=None, zero_init: bool = True):
         super().__init__()
-        if isinstance(patch_size, int): patch_size = (patch_size, patch_size)
+        if isinstance(patch_size, int):
+            patch_size = (patch_size, patch_size)
         self.ph = patch_size[0]
         self.pw = patch_size[1]
         if d_cond_norm is not None:
@@ -120,11 +144,14 @@ class TokenSplitLast2D(nn.Module):
         else:
             self.norm = RMSNorm(in_features)
         self.proj = nn.Linear(in_features, out_features * self.ph * self.pw, bias=False)
-        if zero_init: nn.init.zeros_(self.proj.weight)
+        if zero_init:
+            nn.init.zeros_(self.proj.weight)
 
     def forward(self, x, cond_norm=None):
         if cond_norm is not None:
-            assert x.ndim == cond_norm.ndim, f"expected cond_norm to have same ndim as x: {x.shape} vs {cond_norm.shape}"
+            assert (
+                x.ndim == cond_norm.ndim
+            ), f"expected cond_norm to have same ndim as x: {x.shape} vs {cond_norm.shape}"
             x = self.norm(x, cond_norm)
         else:
             x = self.norm(x)
@@ -191,9 +218,10 @@ class TimestepEmbedder(nn.Module):
         self.time_in_proj = nn.Linear(dim, dim, bias=False)
         self.mapping = MappingNetwork(depth, dim, dim_mlp, dropout=dropout)
 
-        if COMPILE: self.forward = compile_fn(self.forward)
+        if COMPILE:
+            self.forward = compile_fn(self.forward)
 
-    def forward(self, t: Float[torch.Tensor, 'b']) -> Float[torch.Tensor, 'b dim']:
+    def forward(self, t: Float[torch.Tensor, "b"]) -> Float[torch.Tensor, "b dim"]:
         if t.ndim == 1:
             t = t[..., None]
         time_emb = self.time_in_proj(self.time_emb(t))
@@ -228,7 +256,8 @@ class MappingNetwork(nn.Module):
         self.blocks = nn.ModuleList([MappingFeedForwardBlock(d_model, d_ff, dropout=dropout) for _ in range(n_layers)])
         self.out_norm = RMSNorm(d_model)
 
-        if COMPILE: self.forward = compile_fn(self.forward)
+        if COMPILE:
+            self.forward = compile_fn(self.forward)
 
     def forward(self, x):
         x = self.in_norm(x)
@@ -282,7 +311,7 @@ class AttentionBlock(nn.Module):
         d_head: int = 64,
         d_cond_norm: int | None = None,
         dropout: float = 0.0,
-        rope_cls: str = 'jutils.nn.rope.AxialRoPE2D',
+        rope_cls: str = "jutils.nn.rope.AxialRoPE2D",
     ):
         super().__init__()
         self.d_head = d_head
@@ -339,7 +368,7 @@ class CrossAttentionBlock(nn.Module):
         d_head: int = 64,
         d_cond_norm: int | None = None,
         dropout: float = 0.0,
-        rope_cls: str = 'jutils.nn.rope.AxialRoPE2D',
+        rope_cls: str = "jutils.nn.rope.AxialRoPE2D",
     ):
         super().__init__()
         self.d_head = d_head
@@ -387,14 +416,14 @@ class CrossAttentionBlock(nn.Module):
             theta = self.pos_emb(pos)
             theta = theta.movedim(-2, -3)
             q = self.pos_emb.apply_emb(q, theta)
-        
+
         x = F.scaled_dot_product_attention(q, k, v, scale=1.0)
         x = rearrange(x, "n nh l e -> n l (nh e)")
 
         x = self.dropout(x)
         x = self.out_proj(x)
         return x + skip
-    
+
 
 class TransformerLayer(nn.Module):
     def __init__(
@@ -405,13 +434,13 @@ class TransformerLayer(nn.Module):
         d_cond_norm=None,
         dropout=0.0,
         ff_expand=3,
-        rope_cls='jutils.nn.rope.AxialRoPE2D',
-        compile: bool = False
+        rope_cls="jutils.nn.rope.AxialRoPE2D",
+        compile: bool = False,
     ):
         super().__init__()
         global COMPILE
         COMPILE = compile
-        
+
         d_ff = d_model * ff_expand
 
         self.self_attn = AttentionBlock(
@@ -432,10 +461,11 @@ class TransformerLayer(nn.Module):
                 dropout=dropout,
                 rope_cls=rope_cls,
             )
-        
+
         self.ff = FeedForwardBlock(d_model, d_ff, d_cond_norm, dropout)
 
-        if COMPILE: self.forward = compile_fn(self.forward)
+        if COMPILE:
+            self.forward = compile_fn(self.forward)
 
     def forward(
         self,
@@ -443,7 +473,7 @@ class TransformerLayer(nn.Module):
         pos: Float[torch.Tensor, "b n d"],
         cond_norm: Float[torch.Tensor, "b 1|n e"] = None,
         x_cross: Float[torch.Tensor, "b m k"] = None,
-        block_mask = None,
+        block_mask=None,
     ):
         x = self.self_attn(x, pos, cond_norm=cond_norm, block_mask=block_mask)
         if self.cross_attn is not None:
@@ -461,11 +491,12 @@ class DimensionAttentionBlock(AttentionBlock):
     Expects (b, ..., dim), reshapes in forward, and applies attention over all '...' dimensions.
     This allows you to apply AdaRMSNorm only to specific dimensions.
     """
+
     def forward(
         self,
-        x: Float[torch.Tensor, 'b ... c'],
-        pos: Float[torch.Tensor, 'b ... d'],
-        cond_norm: Float[torch.Tensor, 'b ... e'] = None,
+        x: Float[torch.Tensor, "b ... c"],
+        pos: Float[torch.Tensor, "b ... d"],
+        cond_norm: Float[torch.Tensor, "b ... e"] = None,
         block_mask=None,
     ):
         skip = x
@@ -504,12 +535,13 @@ class DimensionCrossAttentionBlock(CrossAttentionBlock):
     Expects (b, ..., dim), reshapes in forward, and applies attention over all '...' dimensions.
     This allows you to apply AdaRMSNorm only to specific dimensions.
     """
+
     def forward(
         self,
-        x: Float[torch.Tensor, 'b ... c'],
-        pos: Float[torch.Tensor, 'b ... d'],
-        x_cross: Float[torch.Tensor, 'b ... k'],
-        cond_norm: Float[torch.Tensor, 'b ... e'] = None,
+        x: Float[torch.Tensor, "b ... c"],
+        pos: Float[torch.Tensor, "b ... d"],
+        x_cross: Float[torch.Tensor, "b ... k"],
+        cond_norm: Float[torch.Tensor, "b ... e"] = None,
     ):
         skip = x
         if cond_norm is not None:
@@ -533,7 +565,7 @@ class DimensionCrossAttentionBlock(CrossAttentionBlock):
             theta = self.pos_emb(pos)
             theta = theta.movedim(-2, -3)
             q = self.pos_emb.apply_emb(q, theta)
-        
+
         x = F.scaled_dot_product_attention(q, k, v, scale=1.0)
         x = rearrange(x, "n nh l e -> n l (nh e)")
 
@@ -551,7 +583,7 @@ class TransformerLayerWithDimensions(nn.Module):
         d_cond_norm=None,
         dropout=0.0,
         ff_expand=3,
-        rope_cls='jutils.nn.rope.AxialRoPE2D',
+        rope_cls="jutils.nn.rope.AxialRoPE2D",
         compile: bool = False,
     ):
         super().__init__()
@@ -581,7 +613,8 @@ class TransformerLayerWithDimensions(nn.Module):
 
         self.ff = FeedForwardBlock(d_model, d_ff, d_cond_norm, dropout)
 
-        if COMPILE: self.forward = compile_fn(self.forward)
+        if COMPILE:
+            self.forward = compile_fn(self.forward)
 
     def forward(
         self,
@@ -602,7 +635,8 @@ class TransformerLayerWithDimensions(nn.Module):
 
 
 class RegisterAttentionBlock(AttentionBlock):
-    """ [register tokens, ... other tokens] """
+    """[register tokens, ... other tokens]"""
+
     def __init__(self, *args, n_registers: int = 1, **kwargs):
         super().__init__(*args, **kwargs)
         self.n_registers = n_registers
@@ -625,10 +659,10 @@ class RegisterAttentionBlock(AttentionBlock):
 
         # exclude register tokens from RoPE (registers first)
         if self.n_registers > 0:
-            q_r = q[:, :, :self.n_registers, :]
-            k_r = k[:, :, :self.n_registers, :]
-            q = q[:, :, self.n_registers:, :]
-            k = k[:, :, self.n_registers:, :]
+            q_r = q[:, :, : self.n_registers, :]
+            k_r = k[:, :, : self.n_registers, :]
+            q = q[:, :, self.n_registers :, :]
+            k = k[:, :, self.n_registers :, :]
 
             theta = theta.movedim(-2, -3)
             q = self.pos_emb.apply_emb(q, theta)
@@ -651,7 +685,8 @@ class RegisterAttentionBlock(AttentionBlock):
 
 
 class RegisterCrossAttentionBlock(CrossAttentionBlock):
-    """ [register tokens, ... other tokens] """
+    """[register tokens, ... other tokens]"""
+
     def __init__(self, *args, n_registers: int = 1, **kwargs):
         super().__init__(*args, **kwargs)
         self.n_registers = n_registers
@@ -683,13 +718,13 @@ class RegisterCrossAttentionBlock(CrossAttentionBlock):
 
         theta = theta.movedim(-2, -3)
         if self.n_registers > 0:
-            q_r = q[:, :, :self.n_registers, :]
-            q = q[:, :, self.n_registers:, :]
+            q_r = q[:, :, : self.n_registers, :]
+            q = q[:, :, self.n_registers :, :]
             q = self.pos_emb.apply_emb(q, theta)
             q = torch.cat([q_r, q], dim=-2)
         else:
             q = self.pos_emb.apply_emb(q, theta)
-        
+
         x = F.scaled_dot_product_attention(q, k, v, scale=1.0)
         x = rearrange(x, "n nh l e -> n l (nh e)")
 
@@ -707,7 +742,7 @@ class TransformerLayerWithRegisters(nn.Module):
         d_cond_norm=None,
         dropout=0.0,
         ff_expand=3,
-        rope_cls='jutils.nn.rope.AxialRoPE2D',
+        rope_cls="jutils.nn.rope.AxialRoPE2D",
         compile: bool = False,
         n_registers: int = 1,
     ):
@@ -715,7 +750,7 @@ class TransformerLayerWithRegisters(nn.Module):
         global COMPILE
         COMPILE = compile
         self.n_registers = n_registers
-        
+
         d_ff = d_model * ff_expand
 
         self.self_attn = RegisterAttentionBlock(
@@ -738,10 +773,11 @@ class TransformerLayerWithRegisters(nn.Module):
                 rope_cls=rope_cls,
                 n_registers=n_registers,
             )
-        
+
         self.ff = FeedForwardBlock(d_model, d_ff, d_cond_norm, dropout)
 
-        if COMPILE: self.forward = compile_fn(self.forward)
+        if COMPILE:
+            self.forward = compile_fn(self.forward)
 
     def forward(
         self,

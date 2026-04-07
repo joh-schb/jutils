@@ -34,11 +34,11 @@ __all__ = [
 
 
 def norm(im):
-    return im / 127.5 - 1.
+    return im / 127.5 - 1.0
 
 
 def denorm(im):
-    return (im + 1.) * 127.5
+    return (im + 1.0) * 127.5
 
 
 def im2tensor(im, normalize_zero_one=False):
@@ -53,10 +53,10 @@ def im2tensor(im, normalize_zero_one=False):
         im = np.array(im)
     assert len(im.shape) == 3, f"Image must be of shape (h, w, c). Got {im.shape}."
     if normalize_zero_one:
-        im = im / 255.
+        im = im / 255.0
     else:
-        im = im / 127.5 - 1.
-    im = einops.rearrange(im, 'h w c -> c h w')
+        im = im / 127.5 - 1.0
+    im = einops.rearrange(im, "h w c -> c h w")
     return torch.tensor(im).float()
 
 
@@ -74,11 +74,11 @@ def tensor2im(tensor, denormalize_zero_one=False):
         tensor = tensor[0]
     if isinstance(tensor, torch.Tensor):
         tensor = tensor.detach().cpu().numpy()
-    im = einops.rearrange(tensor, '... c h w -> ... h w c')
+    im = einops.rearrange(tensor, "... c h w -> ... h w c")
     if denormalize_zero_one:
-        im = im * 255.
+        im = im * 255.0
     else:
-        im = (im + 1.) * 127.5
+        im = (im + 1.0) * 127.5
     im = np.clip(im, 0, 255).astype(np.uint8)
     return im
 
@@ -90,15 +90,15 @@ def alpha_compose(bg_im, fg_im, alpha=0.5, resizer=Image.Resampling.BILINEAR):
         fg_im = Image.fromarray(fg_im)
     if fg_im.size != bg_im.size:
         fg_im = fg_im.resize(bg_im.size, resample=resizer)
-    image = bg_im.convert('RGB')
-    fg = fg_im.convert('RGBA')
+    image = bg_im.convert("RGB")
+    fg = fg_im.convert("RGBA")
     alpha = int(255 * alpha)
     fg.putalpha(alpha)
     image.paste(fg, (0, 0), fg)
     return image
 
 
-def alpha_compose_heatmap(image, heatmap, alpha=0.5, cmap='viridis', resizer=Image.Resampling.BILINEAR):
+def alpha_compose_heatmap(image, heatmap, alpha=0.5, cmap="viridis", resizer=Image.Resampling.BILINEAR):
     """
     Args:
         image: PIL image
@@ -106,16 +106,16 @@ def alpha_compose_heatmap(image, heatmap, alpha=0.5, cmap='viridis', resizer=Ima
         alpha: float, alpha value for the heatmap
         cmap: str, pyplot colormap for the heatmap (default: 'viridis')
         resizer: PIL resampling filter for resizing the heatmap (default: Image.Resampling.BILINEAR)
-    
+
     Returns:
         PIL image
     """
     if not isinstance(image, Image.Image):
         image = Image.fromarray(image)
-    
+
     if isinstance(heatmap, torch.Tensor):
         heatmap = heatmap.cpu().numpy()
-    assert heatmap.ndim == 2, 'heatmap must be 2D (H, W)'
+    assert heatmap.ndim == 2, "heatmap must be 2D (H, W)"
 
     # min-max normalize the heatmap
     heatmap = (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min())
@@ -148,11 +148,11 @@ def get_original_reconstruction_image(x, x_hat, channels_first=False):
         x = x[None]
         x_hat = x_hat[None]
     if channels_first:
-        x = einops.rearrange(x, 'b c h w -> b h w c')
-        x_hat = einops.rearrange(x_hat, 'b c h w -> b h w c')
+        x = einops.rearrange(x, "b c h w -> b h w c")
+        x_hat = einops.rearrange(x_hat, "b c h w -> b h w c")
 
-    x = einops.rearrange(x, 'b h w c -> h (b w) c')
-    x_hat = einops.rearrange(x_hat, 'b h w c -> h (b w) c')
+    x = einops.rearrange(x, "b h w c -> h (b w) c")
+    x_hat = einops.rearrange(x_hat, "b h w c -> h (b w) c")
     ims = np.concatenate((x, x_hat), axis=0)
 
     return ims
@@ -171,23 +171,25 @@ def zero_pad(x, pad=2):
     if isinstance(pad, tuple) or isinstance(pad, list):
         padding = pad
     else:
-        padding = [pad, ] * 4
+        padding = [
+            pad,
+        ] * 4
     x = torch.nn.functional.pad(x, padding)
     x = x.numpy() if not is_torch else x
     return x
 
 
 def hwc2chw(im):
-    return einops.rearrange(im, '... h w c -> ... c h w')
+    return einops.rearrange(im, "... h w c -> ... c h w")
 
 
 def chw2hwc(im):
-    return einops.rearrange(im, '... c h w -> ... h w c')
+    return einops.rearrange(im, "... c h w -> ... h w c")
 
 
 def per_sample_min_max_normalization(x):
-    """ Normalize each sample in a batch independently
-    with min-max normalization to [0, 1] """
+    """Normalize each sample in a batch independently
+    with min-max normalization to [0, 1]"""
     bs, *shape = x.shape
     x_ = einops.rearrange(x, "b ... -> b (...)")
     min_val = einops.reduce(x_, "b ... -> b", "min")[..., None]
@@ -201,24 +203,22 @@ def resize_ims(x: Tensor, size: int, mode: str = "bilinear", **kwargs):
 
 
 def center_crop_np(im, new_height, new_width):
-    assert (
-        len(im.shape) == 3 or len(im.shape) == 2
-    ), f"Image must be of shape (h, w, c) or (h, w). Got {im.shape}."
+    assert len(im.shape) == 3 or len(im.shape) == 2, f"Image must be of shape (h, w, c) or (h, w). Got {im.shape}."
     height, width = im.shape[:2]
-    left = (width - new_width)//2
-    top = (height - new_height)//2
-    right = (width + new_width)//2
-    bottom = (height + new_height)//2
+    left = (width - new_width) // 2
+    top = (height - new_height) // 2
+    right = (width + new_width) // 2
+    bottom = (height + new_height) // 2
     im = im[top:bottom, left:right]
     return im
 
 
 def center_crop_pil(im, new_height, new_width):
     width, height = im.size
-    left = (width - new_width)//2
-    top = (height - new_height)//2
-    right = (width + new_width)//2
-    bottom = (height + new_height)//2
+    left = (width - new_width) // 2
+    top = (height - new_height) // 2
+    right = (width + new_width) // 2
+    bottom = (height + new_height) // 2
     im = im.crop((left, top, right, bottom))
     return im
 
@@ -259,7 +259,7 @@ def ims_to_grid(ims, stack="row", split=4, channel_last=False):
     """
     if stack not in ["row", "col"]:
         raise ValueError(f"Unknown stack type {stack}")
-    from_ = 'h w c' if channel_last else 'c h w'
+    from_ = "h w c" if channel_last else "c h w"
     if split is not None and ims.shape[0] % split == 0:
         splitter = dict(b1=split) if stack == "row" else dict(b2=split)
         ims = einops.rearrange(ims, f"(b1 b2) {from_} -> (b1 h) (b2 w) c", **splitter)
@@ -281,8 +281,10 @@ def text_to_canvas(txt, h, w=None, background=(0, 0, 0), fontcolor=(255, 255, 0)
     image = Image.new("RGB", (w, h), color=background)
     draw = ImageDraw.Draw(image)
 
-    try: font = ImageFont.truetype("DejaVuSans.ttf", font_size)
-    except IOError: font = ImageFont.load_default()
+    try:
+        font = ImageFont.truetype("DejaVuSans.ttf", font_size)
+    except IOError:
+        font = ImageFont.load_default()
 
     # Calculate text size and position it in the center
     text_bbox = draw.textbbox((0, 0), txt, font=font)
@@ -291,7 +293,7 @@ def text_to_canvas(txt, h, w=None, background=(0, 0, 0), fontcolor=(255, 255, 0)
     position = ((w - text_width) // 2, (h - text_height) // 2)
 
     draw.text(position, txt, fill=fontcolor, font=font)
-    
+
     return np.array(image)
 
 
@@ -300,7 +302,7 @@ def text_to_canvas(txt, h, w=None, background=(0, 0, 0), fontcolor=(255, 255, 0)
 
 if __name__ == "__main__":
     cur_dir = os.path.dirname(os.path.abspath(__file__))
-    im_fp = os.path.join(cur_dir.split('jutils/vision')[0], 'assets', 'image.jpg')
+    im_fp = os.path.join(cur_dir.split("jutils/vision")[0], "assets", "image.jpg")
 
     # alpha_compose(bg_im, fg_im, alpha=0.5)
     im_a = np.array(Image.open(im_fp))
@@ -313,12 +315,12 @@ if __name__ == "__main__":
     x = np.linspace(-1, 1, 100)
     x, y = np.meshgrid(x, x)
     gaussian = np.exp(-(x**2 + y**2) / (2 * 0.5**2))
-    im_composed = alpha_compose_heatmap(im, gaussian, alpha=0.5, cmap='viridis')
+    im_composed = alpha_compose_heatmap(im, gaussian, alpha=0.5, cmap="viridis")
     im_composed.show()
 
     # get_original_reconstruction_image(x, x_hat, channels_first=True)
     im_orig = np.array(Image.open(im_fp))
-    im_orig = np.stack((im_orig, im_orig), axis=0)              # batched images
+    im_orig = np.stack((im_orig, im_orig), axis=0)  # batched images
     im_rec = (np.random.randn(*im_orig.shape) * 127.5 + 127.5).astype(np.uint8)
     im_orig_rec = get_original_reconstruction_image(im_orig, im_rec)
     print("Shape of original vs reconstructed image:", im_orig_rec.shape)
@@ -326,21 +328,19 @@ if __name__ == "__main__":
 
     # img2tensor(img, normalize_zero_one=False)
     img = Image.open(im_fp)
-    print("img2tensor(img).shape:", im2tensor(img).shape,
-          f"min: {im2tensor(img).min()}, max: {im2tensor(img).max()}")
+    print("img2tensor(img).shape:", im2tensor(img).shape, f"min: {im2tensor(img).min()}, max: {im2tensor(img).max()}")
 
     # tensor2img(tensor, denormalize_zero_one=False)
     arr = im2tensor(img)
-    print("tensor2img(tensor).shape:", tensor2im(arr).shape,
-          f"min: {tensor2im(arr).min()}, max: {tensor2im(arr).max()}")
+    print(
+        "tensor2img(tensor).shape:", tensor2im(arr).shape, f"min: {tensor2im(arr).min()}, max: {tensor2im(arr).max()}"
+    )
 
     # zero_pad(x, pad_size: int = 2)
     img = Image.open(im_fp)
     img = im2tensor(img, normalize_zero_one=True)
     print("zero_pad(x).shape:", zero_pad(img, (50, 100, 150, 200)).shape)
-    Image.fromarray(
-        tensor2im(zero_pad(img, (50, 100, 0, 200)), denormalize_zero_one=True)
-    ).show()
+    Image.fromarray(tensor2im(zero_pad(img, (50, 100, 0, 200)), denormalize_zero_one=True)).show()
 
     # hwc2chw(im)
     img = Image.open(im_fp)
@@ -358,7 +358,7 @@ if __name__ == "__main__":
     # resize_ims(x: Tensor, size: int, mode: str = "bilinear", **kwargs)
     x = torch.arange(2 * 16).reshape(2, 1, 4, 4).float()
     print("resize_ims(x, size=8):\n", resize_ims(x, size=8))
-    print("resize_ims(x, size=8, mode='nearest'):\n", resize_ims(x, size=8, mode='nearest'))
+    print("resize_ims(x, size=8, mode='nearest'):\n", resize_ims(x, size=8, mode="nearest"))
 
     # center_crop_np(im, new_height, new_width)
     img = Image.open(im_fp)

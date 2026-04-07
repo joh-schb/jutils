@@ -23,21 +23,22 @@ def default(val, d):
     return d() if isfunction(d) else d
 
 
-class QKVAttention(nn.Module):  
-    """  
+class QKVAttention(nn.Module):
+    """
     A module which performs QKV attention.
     """
+
     def __init__(self, efficient_attn: bool = True, dropout: float = 0.0):
-        super().__init__()  
-        self.dropout = dropout  
-        self.efficient_attn = efficient_attn  
-        if self.efficient_attn:  
-            try:  
-                _ = nn.functional.scaled_dot_product_attention  
-            except AttributeError:  
-                print("Please update PyTorch to 2.0 or higher to use efficient attention.")  
+        super().__init__()
+        self.dropout = dropout
+        self.efficient_attn = efficient_attn
+        if self.efficient_attn:
+            try:
+                _ = nn.functional.scaled_dot_product_attention
+            except AttributeError:
+                print("Please update PyTorch to 2.0 or higher to use efficient attention.")
                 self.efficient_attn = False
-  
+
     def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor):
         """
         Args:
@@ -46,31 +47,31 @@ class QKVAttention(nn.Module):
         Returns:
             res: (n, ..., l, c) tensor after attention.
         """
-        if self.efficient_attn:  
+        if self.efficient_attn:
             res = nn.functional.scaled_dot_product_attention(q, k, v, dropout_p=self.dropout)
-        else:  
-            ch = q.shape[-1]  
-            scale = 1. / math.sqrt(ch)
-            dot = torch.einsum('...td, ...kd -> ...tk', q, k) * scale  
-            weight = torch.softmax(dot, dim=-1)  
-            if self.dropout > 0.0:  
-                weight = torch.dropout(weight, p=self.dropout, train=self.training)  
-            res = torch.einsum('...dt, ...tv -> ...dv', weight, v)  
-        return res  
+        else:
+            ch = q.shape[-1]
+            scale = 1.0 / math.sqrt(ch)
+            dot = torch.einsum("...td, ...kd -> ...tk", q, k) * scale
+            weight = torch.softmax(dot, dim=-1)
+            if self.dropout > 0.0:
+                weight = torch.dropout(weight, p=self.dropout, train=self.training)
+            res = torch.einsum("...dt, ...tv -> ...dv", weight, v)
+        return res
 
 
 class Attention(nn.Module):
-    def __init__(self, dim, context_dim=None, num_heads=8, qkv_bias=False, attn_drop=0., proj_drop=0.):
+    def __init__(self, dim, context_dim=None, num_heads=8, qkv_bias=False, attn_drop=0.0, proj_drop=0.0):
         super().__init__()
-        assert dim % num_heads == 0, 'dim should be divisible by num_heads'
+        assert dim % num_heads == 0, "dim should be divisible by num_heads"
         context_dim = default(context_dim, dim)
         self.num_heads = num_heads
         head_dim = dim // num_heads
-        self.scale = head_dim ** -0.5
+        self.scale = head_dim**-0.5
 
         self.to_q = nn.Linear(dim, dim, bias=qkv_bias)
         self.to_kv = nn.Linear(context_dim, dim * 2, bias=qkv_bias)
-        
+
         self.qkv_attention = QKVAttention(dropout=attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
@@ -83,24 +84,28 @@ class Attention(nn.Module):
 
         # get key, value from context (default to self-attention if context is None)
         context = default(context, x)
-        kv = self.to_kv(context).reshape(B, context.shape[1], 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
-        k, v = kv.unbind(0)   # make torchscript happy (cannot use tensor as tuple)
-        
+        kv = (
+            self.to_kv(context)
+            .reshape(B, context.shape[1], 2, self.num_heads, C // self.num_heads)
+            .permute(2, 0, 3, 1, 4)
+        )
+        k, v = kv.unbind(0)  # make torchscript happy (cannot use tensor as tuple)
+
         x = self.qkv_attention(q, k, v)
         x = x.transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x
-    
+
 
 class _TestAttention(nn.Module):
-    def __init__(self, dim, num_heads=8, qkv_bias=False, attn_drop=0., proj_drop=0.):
-        """ Adapted from timm.models.vision_transformer.Attention for testing """
+    def __init__(self, dim, num_heads=8, qkv_bias=False, attn_drop=0.0, proj_drop=0.0):
+        """Adapted from timm.models.vision_transformer.Attention for testing"""
         super().__init__()
-        assert dim % num_heads == 0, 'dim should be divisible by num_heads'
+        assert dim % num_heads == 0, "dim should be divisible by num_heads"
         self.num_heads = num_heads
         head_dim = dim // num_heads
-        self.scale = head_dim ** -0.5
+        self.scale = head_dim**-0.5
 
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
@@ -110,8 +115,8 @@ class _TestAttention(nn.Module):
     def forward(self, x):
         B, N, C = x.shape
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
-        q, k, v = qkv.unbind(0)   # make torchscript happy (cannot use tensor as tuple)
-        
+        q, k, v = qkv.unbind(0)  # make torchscript happy (cannot use tensor as tuple)
+
         attn = (q @ k.transpose(-2, -1)) * self.scale
         attn = attn.softmax(dim=-1)
         attn = self.attn_drop(attn)
@@ -137,7 +142,7 @@ if __name__ == "__main__":
     _attn.qkv.weight.data = torch.cat((q_w, kv_w), dim=0)
     _attn.proj.weight.data = proj_w
     _attn.proj.bias.data = proj_b
-    
+
     res = _attn(x)
     print("_TestAttention:", res.shape)
     print(res)
@@ -148,7 +153,7 @@ if __name__ == "__main__":
     attn.to_kv.weight.data = kv_w
     attn.proj.weight.data = proj_w
     attn.proj.bias.data = proj_b
-    
+
     res = attn(x, context=x)
     print("Attention:", res.shape)
     print(res)

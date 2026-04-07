@@ -13,7 +13,7 @@ __all__ = [
 
 
 def format_time(seconds: Union[int, float]) -> str:
-    """ Convert seconds to human readable string with hours, minutes and seconds. """
+    """Convert seconds to human readable string with hours, minutes and seconds."""
     hours, rem = divmod(seconds, 3600)
     minutes, seconds = divmod(rem, 60)
     return "{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds)
@@ -23,7 +23,7 @@ def timer(start, end):
     return format_time(end - start)
 
 
-def get_time(str_format: str = '%H:%M:%S.%f'):
+def get_time(str_format: str = "%H:%M:%S.%f"):
     return datetime.datetime.now().strftime(str_format)
 
 
