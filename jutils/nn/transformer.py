@@ -9,7 +9,6 @@ from functools import partial
 import torch.nn.functional as F
 from torch.nn.attention.flex_attention import flex_attention
 
-
 __all__ = [
     "zero_init",
     "LinearSwiGLU",
@@ -330,7 +329,14 @@ class AttentionBlock(nn.Module):
         if rope_cls is not None:
             self.pos_emb = locate(rope_cls)(d_head, self.n_heads, relative_canvas=True, learnable_freqs=False)
 
-    def forward(self, x, pos, cond_norm=None, block_mask=None):
+    def forward(
+        self,
+        x: Float[torch.Tensor, "b l d"],
+        pos: Float[torch.Tensor, "b l nc"],
+        cond_norm=None,
+        block_mask=None,
+        n_rope_excluded: int = 0,  # prefix tokens, excluded from RoPE (e.g. register tokens)
+    ):
         skip = x
 
         if cond_norm is not None:
@@ -345,9 +351,24 @@ class AttentionBlock(nn.Module):
         if self.pos_emb is not None:
             pos = pos.to(qkv.dtype)
             theta = self.pos_emb(pos)
-            theta = theta.movedim(-2, -3)
-            q = self.pos_emb.apply_emb(q, theta)
-            k = self.pos_emb.apply_emb(k, theta)
+
+            # exclude prefix tokens from RoPE, e.g. register tokens
+            if n_rope_excluded > 0:
+                q_r = q[:, :, :n_rope_excluded, :]
+                k_r = k[:, :, :n_rope_excluded, :]
+                q = q[:, :, n_rope_excluded:, :]
+                k = k[:, :, n_rope_excluded:, :]
+
+                theta = theta.movedim(-2, -3)
+                q = self.pos_emb.apply_emb(q, theta)
+                k = self.pos_emb.apply_emb(k, theta)
+
+                q = torch.cat([q_r, q], dim=-2)
+                k = torch.cat([k_r, k], dim=-2)
+            else:
+                theta = theta.movedim(-2, -3)
+                q = self.pos_emb.apply_emb(q, theta)
+                k = self.pos_emb.apply_emb(k, theta)
 
         if block_mask is None:
             x = F.scaled_dot_product_attention(q, k, v, scale=1.0)
@@ -397,7 +418,8 @@ class CrossAttentionBlock(nn.Module):
         pos: Float[torch.Tensor, "b l nc"],
         x_cross: Float[torch.Tensor, "b l' d'"],
         cond_norm: Float[torch.Tensor, "b d"] | None = None,
-    ) -> Float[torch.Tensor, "b ... d"]:
+        n_rope_excluded: int = 0,  # prefix tokens, excluded from RoPE (e.g. register tokens)
+    ) -> Float[torch.Tensor, "b l d"]:
         skip = x
         if cond_norm is not None:
             x = self.norm(x, cond_norm)
@@ -415,7 +437,13 @@ class CrossAttentionBlock(nn.Module):
             pos = pos.to(q.dtype)
             theta = self.pos_emb(pos)
             theta = theta.movedim(-2, -3)
-            q = self.pos_emb.apply_emb(q, theta)
+            if n_rope_excluded > 0:
+                q_r = q[:, :, :n_rope_excluded, :]
+                q = q[:, :, n_rope_excluded:, :]
+                q = self.pos_emb.apply_emb(q, theta)
+                q = torch.cat([q_r, q], dim=-2)
+            else:
+                q = self.pos_emb.apply_emb(q, theta)
 
         x = F.scaled_dot_product_attention(q, k, v, scale=1.0)
         x = rearrange(x, "n nh l e -> n l (nh e)")
@@ -474,10 +502,23 @@ class TransformerLayer(nn.Module):
         cond_norm: Float[torch.Tensor, "b 1|n e"] = None,
         x_cross: Float[torch.Tensor, "b m k"] = None,
         block_mask=None,
+        n_rope_excluded: int = 0,  # prefix tokens, excluded from RoPE (e.g. register tokens)
     ):
-        x = self.self_attn(x, pos, cond_norm=cond_norm, block_mask=block_mask)
+        x = self.self_attn(
+            x,
+            pos,
+            cond_norm=cond_norm,
+            block_mask=block_mask,
+            n_rope_excluded=n_rope_excluded,
+        )
         if self.cross_attn is not None:
-            x = self.cross_attn(x, pos, x_cross=x_cross, cond_norm=cond_norm)
+            x = self.cross_attn(
+                x,
+                pos,
+                x_cross=x_cross,
+                cond_norm=cond_norm,
+                n_rope_excluded=n_rope_excluded,
+            )
         x = self.ff(x, cond_norm=cond_norm)
         return x
 
@@ -635,162 +676,37 @@ class TransformerLayerWithDimensions(nn.Module):
 
 
 class RegisterAttentionBlock(AttentionBlock):
-    """[register tokens, ... other tokens]"""
+    """Legacy wrapper for [register tokens, ... other tokens]."""
 
     def __init__(self, *args, n_registers: int = 1, **kwargs):
         super().__init__(*args, **kwargs)
         self.n_registers = n_registers
         assert self.n_registers >= 0, "n_registers must be non-negative"
 
-    def forward(self, x, pos, cond_norm=None):
-        skip = x
-
-        if cond_norm is not None:
-            x = self.norm(x, cond_norm)
-        else:
-            x = self.norm(x)
-
-        qkv = self.qkv_proj(x)
-        pos = pos.to(qkv.dtype)
-        theta = self.pos_emb(pos)
-
-        q, k, v = rearrange(qkv, "n l (t nh e) -> t n nh l e", t=3, e=self.d_head)
-        q, k = scale_for_cosine_sim(q, k, self.scale[:, None, None], 1e-6)
-
-        # exclude register tokens from RoPE (registers first)
-        if self.n_registers > 0:
-            q_r = q[:, :, : self.n_registers, :]
-            k_r = k[:, :, : self.n_registers, :]
-            q = q[:, :, self.n_registers :, :]
-            k = k[:, :, self.n_registers :, :]
-
-            theta = theta.movedim(-2, -3)
-            q = self.pos_emb.apply_emb(q, theta)
-            k = self.pos_emb.apply_emb(k, theta)
-
-            # concatenate back
-            q = torch.cat([q_r, q], dim=-2)
-            k = torch.cat([k_r, k], dim=-2)
-        else:
-            theta = theta.movedim(-2, -3)
-            q = self.pos_emb.apply_emb(q, theta)
-            k = self.pos_emb.apply_emb(k, theta)
-
-        x = F.scaled_dot_product_attention(q, k, v, scale=1.0)
-        x = rearrange(x, "n nh l e -> n l (nh e)")
-
-        x = self.dropout(x)
-        x = self.out_proj(x)
-        return x + skip
+    def forward(self, *args, **kwargs):
+        return super().forward(*args, **kwargs, n_rope_excluded=self.n_registers)
 
 
 class RegisterCrossAttentionBlock(CrossAttentionBlock):
-    """[register tokens, ... other tokens]"""
+    """Legacy wrapper for [register tokens, ... other tokens]."""
 
     def __init__(self, *args, n_registers: int = 1, **kwargs):
         super().__init__(*args, **kwargs)
         self.n_registers = n_registers
         assert self.n_registers >= 0, "n_registers must be non-negative"
 
-    def forward(
-        self,
-        x: Float[torch.Tensor, "b l d"],
-        pos: Float[torch.Tensor, "b l nc"],
-        x_cross: Float[torch.Tensor, "b l' d'"],
-        cond_norm: Float[torch.Tensor, "b d"] | None = None,
-    ) -> Float[torch.Tensor, "b ... d"]:
-        skip = x
-        if cond_norm is not None:
-            x = self.norm(x, cond_norm)
-        else:
-            x = self.norm(x)
-
-        x_cross = self.norm_cross(x_cross)
-        kv = self.kv_proj(x_cross)
-        q = self.q_proj(x)
-
-        pos = pos.to(q.dtype)
-        theta = self.pos_emb(pos)
-
-        q = rearrange(q, "n l (nh e) -> n nh l e", e=self.d_head)
-        k, v = rearrange(kv, "n l (t nh e) -> t n nh l e", t=2, e=self.d_head)
-        q, k = scale_for_cosine_sim(q, k, self.scale[:, None, None], 1e-6)
-
-        theta = theta.movedim(-2, -3)
-        if self.n_registers > 0:
-            q_r = q[:, :, : self.n_registers, :]
-            q = q[:, :, self.n_registers :, :]
-            q = self.pos_emb.apply_emb(q, theta)
-            q = torch.cat([q_r, q], dim=-2)
-        else:
-            q = self.pos_emb.apply_emb(q, theta)
-
-        x = F.scaled_dot_product_attention(q, k, v, scale=1.0)
-        x = rearrange(x, "n nh l e -> n l (nh e)")
-
-        x = self.dropout(x)
-        x = self.out_proj(x)
-        return x + skip
+    def forward(self, *args, **kwargs):
+        return super().forward(*args, **kwargs, n_rope_excluded=self.n_registers)
 
 
-class TransformerLayerWithRegisters(nn.Module):
-    def __init__(
-        self,
-        d_model,
-        d_cross=None,
-        d_head=64,
-        d_cond_norm=None,
-        dropout=0.0,
-        ff_expand=3,
-        rope_cls="jutils.nn.rope.AxialRoPE2D",
-        compile: bool = False,
-        n_registers: int = 1,
-    ):
-        super().__init__()
-        global COMPILE
-        COMPILE = compile
+class TransformerLayerWithRegisters(TransformerLayer):
+    def __init__(self, *args, n_registers: int = 1, **kwargs):
+        super().__init__(*args, **kwargs)
         self.n_registers = n_registers
+        assert self.n_registers >= 0, "n_registers must be non-negative"
 
-        d_ff = d_model * ff_expand
-
-        self.self_attn = RegisterAttentionBlock(
-            d_model=d_model,
-            d_head=d_head,
-            d_cond_norm=d_cond_norm,
-            dropout=dropout,
-            rope_cls=rope_cls,
-            n_registers=n_registers,
-        )
-
-        self.cross_attn = None
-        if d_cross is not None:
-            self.cross_attn = RegisterCrossAttentionBlock(
-                d_model=d_model,
-                d_cross=d_cross,
-                d_head=d_head,
-                d_cond_norm=d_cond_norm,
-                dropout=dropout,
-                rope_cls=rope_cls,
-                n_registers=n_registers,
-            )
-
-        self.ff = FeedForwardBlock(d_model, d_ff, d_cond_norm, dropout)
-
-        if COMPILE:
-            self.forward = compile_fn(self.forward)
-
-    def forward(
-        self,
-        x: Float[torch.Tensor, "b n c"],
-        pos: Float[torch.Tensor, "b n d"],
-        cond_norm: Float[torch.Tensor, "b 1|n e"] = None,
-        x_cross: Float[torch.Tensor, "b m k"] = None,
-    ):
-        x = self.self_attn(x, pos, cond_norm=cond_norm)
-        if self.cross_attn is not None:
-            x = self.cross_attn(x, pos, x_cross=x_cross, cond_norm=cond_norm)
-        x = self.ff(x, cond_norm=cond_norm)
-        return x
+    def forward(self, *args, **kwargs):
+        return super().forward(*args, **kwargs, n_rope_excluded=self.n_registers)
 
 
 if __name__ == "__main__":
