@@ -7,6 +7,7 @@ from . import kl_autoencoder as kl_autoencoder
 from . import lr_schedulers as lr_schedulers
 from . import tiny_autoencoder as tiny_autoencoder
 from . import rope as rope
+from . import pos_sincos as pos_sincos
 from . import transformer as transformer
 from . import ae_flux2 as ae_flux2
 from . import metric_kid as metric_kid
@@ -31,6 +32,9 @@ from .tiny_autoencoder import __all__ as _tae_all
 from .rope import *
 from .rope import __all__ as _rope_all
 
+from .pos_sincos import *
+from .pos_sincos import __all__ as _pos_sincos_all
+
 from .transformer import *
 from .transformer import __all__ as _trans_all
 
@@ -50,6 +54,7 @@ __all__ = [
     "kl_autoencoder",
     "lr_schedulers",
     "rope",
+    "pos_sincos",
     "tiny_autoencoder",
     "ae_flux2",
     "transformer",
@@ -61,6 +66,7 @@ __all__ = [
     *_lr_all,
     *_tae_all,
     *_rope_all,
+    *_pos_sincos_all,
     *_trans_all,
     *_ae_flux2_all,
     *_kid_all,
