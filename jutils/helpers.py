@@ -4,8 +4,8 @@ import math
 import torch
 import numpy as np
 from typing import Any
+import jaxtyping as jt
 from contextlib import contextmanager
-
 
 __all__ = [
     "exists",
@@ -14,6 +14,10 @@ __all__ = [
     "divisible_by",
     "bool2str",
     "convert_size",
+    "FloatT",
+    "IntT",
+    "UInt8T",
+    "BoolT",
     "Namespace",
     "suppress_stdout",
     "pad_v_like_x",
@@ -56,6 +60,26 @@ def convert_size(size_bytes):
     p = math.pow(1024, i)
     s = round(size_bytes / p, 2)
     return "%s %s" % (s, size_name[i])
+
+
+class FloatT:
+    def __class_getitem__(cls, shape: str):
+        return jt.Float[torch.Tensor, shape]
+
+
+class IntT:
+    def __class_getitem__(cls, shape: str):
+        return jt.Int[torch.Tensor, shape]
+
+
+class UInt8T:
+    def __class_getitem__(cls, shape: str):
+        return jt.UInt8[torch.Tensor, shape]
+
+
+class BoolT:
+    def __class_getitem__(cls, shape: str):
+        return jt.Bool[torch.Tensor, shape]
 
 
 class Namespace(dict):
