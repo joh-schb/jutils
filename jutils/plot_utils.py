@@ -3,6 +3,8 @@ from pathlib import Path
 from importlib import resources
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
+from matplotlib.path import Path as MplPath
+from matplotlib.patches import PathPatch
 
 __all__ = [
     "RCPARAMS",
@@ -12,6 +14,8 @@ __all__ = [
     "latex_pt_to_inch",
     "inch_to_latex_pt",
     "make_row_of_axes",
+    "round_bar_tops",
+    "label_bars",
     "register_google_fonts",
     "set_font_family",
 ]
@@ -94,6 +98,57 @@ def latex_pt_to_inch(pt):
 
 def inch_to_latex_pt(inch):
     return inch * POINTS_PER_INCH
+
+
+def round_bar_tops(ax, bars, radius: float = 6):
+    """Round vertical bar tips with a pixel radius; call after setting limits and layout.
+
+    bars = ax.bar(["A", "B"], [72.4, 81.2])
+    round_bar_tops(ax, bars, radius=10)
+    """
+    ax.figure.canvas.draw()
+    for bar in bars:
+        (x0, y0), (x1, y1) = ax.transData.transform(bar.get_bbox().get_points())
+        x0, x1 = sorted((x0, x1))
+        r = max(0, min(radius, (x1 - x0) / 2, abs(y1 - y0) / 2))
+        dy = np.copysign(r, y1 - y0)
+        vertices = [
+            (x0, y0),
+            (x1, y0),
+            (x1, y1 - dy),
+            (x1, y1),
+            (x1 - r, y1),
+            (x0 + r, y1),
+            (x0, y1),
+            (x0, y1 - dy),
+            (x0, y0),
+        ]
+        codes = [
+            MplPath.MOVETO,
+            MplPath.LINETO,
+            MplPath.LINETO,
+            MplPath.CURVE3,
+            MplPath.CURVE3,
+            MplPath.LINETO,
+            MplPath.CURVE3,
+            MplPath.CURVE3,
+            MplPath.CLOSEPOLY,
+        ]
+        patch = PathPatch(MplPath(ax.transData.inverted().transform(vertices), codes))
+        patch.update_from(bar)
+        patch.set_transform(ax.transData)
+        bar.remove()
+        ax.add_patch(patch)
+
+
+def label_bars(ax, bars, fmt: str = "%.1f", padding: float = 3, **kwargs):
+    """Label bar tips, with padding in points.
+
+    ```
+    bars = ax.bar(["A", "B"], [72.4, 81.2])
+    label_bars(ax, bars, fmt="%.1f", padding=4)     # or: labels=["Base", "Ours"]
+    """
+    return ax.bar_label(bars, fmt=fmt, padding=padding, **kwargs)
 
 
 def make_row_of_axes(
@@ -255,3 +310,12 @@ if __name__ == "__main__":
         ax.plot(np.random.randn(10))
         ax.set_title(f"Axis {i+1}")
     plt.savefig("_make_row_of_axes.pdf", bbox_inches="tight")
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    bars = ax.bar(["A", "B", "C", "D"], [72.4, 81.2, 77.8, 9.5], width=0.65)
+    ax.set_ylim(0, 90)
+    fig.tight_layout()
+    round_bar_tops(ax, bars, radius=10)
+    label_bars(ax, bars)
+    fig.savefig("_rounded_bars.png")
+    plt.show()
